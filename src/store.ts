@@ -149,8 +149,8 @@ export function useEditor() {
 
   const loadTemplate = useCallback((id: string) => {
     const t = TEMPLATE_BY_ID[id];
-    if (t) dispatch({ t: "set", doc: t.build() });
-  }, []);
+    if (t) dispatch({ t: "set", doc: t.build(hexSystem, lineSystem) });
+  }, [hexSystem, lineSystem]);
 
   return {
     doc,

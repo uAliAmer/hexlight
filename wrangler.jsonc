@@ -1,0 +1,7 @@
+{
+  // Cloudflare Pages project config. Deploy with: npm run deploy
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "147hex",
+  "compatibility_date": "2025-06-05",
+  "pages_build_output_dir": "dist"
+}
