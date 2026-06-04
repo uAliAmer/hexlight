@@ -103,7 +103,8 @@ export function useEditor() {
   const [hexSystem, setHexSystem] = useState<string>("hex440");
   const [lineSystem, setLineSystem] = useState<string>("line1176");
   const [orientation, setOrient] = useState<Orientation>("pointy");
-  const [units, setUnits] = useState<"cm" | "ft">("cm");
+  const [units, setUnits] = useState<"m" | "cm">("m");
+  const [layoutName, setLayoutName] = useState<string>("Untitled layout");
   const [barConfig, setBarConfig] = useState<BarConfig>(defaultBarConfig());
   const [view, setView] = useState<View>({ scale: 0.18, tx: 0, ty: 0 });
   const [lux, setLux] = useState<LuxInput>(defaultLux());
@@ -164,6 +165,8 @@ export function useEditor() {
     toggleOrientation,
     units,
     setUnits,
+    layoutName,
+    setLayoutName,
     barConfig,
     setBarConfig,
     view,

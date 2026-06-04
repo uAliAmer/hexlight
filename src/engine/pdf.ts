@@ -4,7 +4,7 @@ import { computeBom } from "./bom";
 import { computeLux, LuxInput } from "./lux";
 import { BarConfig, CONNECTOR_LABELS, defaultBarConfig } from "./spec";
 
-export function exportPdf(doc: Doc, lux: LuxInput, clusterExtentM: number, config: BarConfig = defaultBarConfig()) {
+export function exportPdf(doc: Doc, lux: LuxInput, clusterExtentM: number, config: BarConfig = defaultBarConfig(), name = "Untitled layout") {
   const bom = computeBom(doc, config);
   const lx = computeLux(doc, { ...lux, clusterExtentM }, config);
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
@@ -13,7 +13,7 @@ export function exportPdf(doc: Doc, lux: LuxInput, clusterExtentM: number, confi
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(20);
-  pdf.text("Hexlight — Layout Spec", M, y);
+  pdf.text(`Hexlight — ${name}`, M, y);
   y += 8;
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
@@ -70,5 +70,6 @@ export function exportPdf(doc: Doc, lux: LuxInput, clusterExtentM: number, confi
   pdf.setTextColor(140);
   pdf.text("Lux is a ±20% lumen-method estimate (MF 0.80) against EN 12464-1 targets.", M, 285);
 
-  pdf.save("hexlight-layout.pdf");
+  const safe = name.trim().replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "") || "hexlight-layout";
+  pdf.save(`${safe}.pdf`);
 }

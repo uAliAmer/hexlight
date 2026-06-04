@@ -5,18 +5,20 @@ import { Doc, HexCell, hexId } from "./geometry";
 
 function spiral(n: number): [number, number][] {
   const out: [number, number][] = [[0, 0]];
+  // canonical axial directions, order 0..5 (must match ring walk)
   const dirs: [number, number][] = [
     [1, 0],
-    [0, 1],
-    [-1, 1],
-    [-1, 0],
-    [0, -1],
     [1, -1],
+    [0, -1],
+    [-1, 0],
+    [-1, 1],
+    [0, 1],
   ];
   let radius = 1;
   while (out.length < n) {
+    // ring start = radius * direction(4)
     let q = -radius,
-      r = radius; // start of ring
+      r = radius;
     for (let side = 0; side < 6 && out.length < n; side++) {
       for (let step = 0; step < radius && out.length < n; step++) {
         out.push([q, r]);
