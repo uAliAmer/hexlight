@@ -4,9 +4,11 @@
 
 import { Doc, buildGraph } from "./geometry";
 import {
+  BarConfig,
   BarLength,
   CU_TABLE,
-  LUMENS_PER_BAR,
+  defaultBarConfig,
+  lumensForBar,
   MAINTENANCE_FACTOR,
   USE_CASE_BY_ID,
 } from "./spec";
@@ -55,14 +57,14 @@ export function autoDrop(clusterExtentM: number, ceilingHeightM: number, workPla
 }
 
 // total bar lumens in the doc
-export function totalLumens(doc: Doc): number {
+export function totalLumens(doc: Doc, config: BarConfig = defaultBarConfig()): number {
   const g = buildGraph(doc);
   let lm = 0;
-  for (const e of g.edges.values()) if (e.active) lm += LUMENS_PER_BAR[e.len as BarLength] ?? 0;
+  for (const e of g.edges.values()) if (e.active) lm += lumensForBar(config, e.len as BarLength);
   return lm;
 }
 
-export function computeLux(doc: Doc, input: LuxInput): LuxResult {
+export function computeLux(doc: Doc, input: LuxInput, config: BarConfig = defaultBarConfig()): LuxResult {
   const uc = USE_CASE_BY_ID[input.useCaseId];
   const base: LuxResult = {
     targetLux: uc.targetLux,
@@ -89,7 +91,7 @@ export function computeLux(doc: Doc, input: LuxInput): LuxResult {
     return { ...base, errorMessage: "Mounting height conflicts with ceiling." };
   }
 
-  const lm = totalLumens(doc);
+  const lm = totalLumens(doc, config);
   const W = input.roomWidthM;
   const L = input.roomHeightM;
   const area = W * L;

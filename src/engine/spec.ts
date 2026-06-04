@@ -34,6 +34,21 @@ export const LUMENS_PER_BAR: Record<BarLength, number> = {
   1176: WATTS_PER_BAR[1176] * LM_PER_W,
 };
 
+// User-editable bar configuration (Bar configuration popover).
+export interface BarConfig {
+  lmPerW: number; // luminous efficacy
+  driverEff: number; // driver efficiency 0..1
+  wattsPerBar: Record<BarLength, number>;
+}
+export const defaultBarConfig = (): BarConfig => ({
+  lmPerW: LM_PER_W,
+  driverEff: DRIVER_EFFICIENCY,
+  wattsPerBar: { ...WATTS_PER_BAR },
+});
+export const lumensForBar = (c: BarConfig, len: BarLength): number =>
+  (c.wattsPerBar[len] ?? 0) * c.lmPerW;
+export const BAR_LENGTHS: BarLength[] = [440, 565, 1176];
+
 // Light Check
 export const MAINTENANCE_FACTOR = 0.8; // MF
 // Coefficient of Utilisation vs Room Cavity Ratio (RCR): [RCR, CU] pairs, linearly interpolated.

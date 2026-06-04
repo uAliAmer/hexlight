@@ -50,24 +50,31 @@ const Q = 2; // 0.5mm resolution
 const qkey = (x: number, y: number) => `${Math.round(x * Q)}|${Math.round(y * Q)}`;
 const snap = (v: number) => Math.round(v * Q) / Q;
 
-// --- pointy-top hex layout ---
-// circumradius R == edge length L for a regular hexagon. Top vertex points up.
+// --- hex layout (orientation switchable) ---
+// circumradius R == edge length L for a regular hexagon.
 const SQRT3 = Math.sqrt(3);
+
+export type Orientation = "pointy" | "flat";
+let ORIENT: Orientation = "pointy";
+export const setOrientation = (o: Orientation) => { ORIENT = o; };
+export const getOrientation = (): Orientation => ORIENT;
 
 export function hexCenter(systemId: string, q: number, r: number): [number, number] {
   const R = SYSTEM_BY_ID[systemId].segmentLength;
-  const x = R * SQRT3 * (q + r / 2);
-  const y = R * 1.5 * r;
-  return [x, y];
+  if (ORIENT === "pointy") {
+    return [R * SQRT3 * (q + r / 2), R * 1.5 * r];
+  }
+  return [R * 1.5 * q, R * SQRT3 * (r + q / 2)];
 }
 
 export function hexVertices(systemId: string, q: number, r: number): [number, number][] {
   const R = SYSTEM_BY_ID[systemId].segmentLength;
   const [cx, cy] = hexCenter(systemId, q, r);
+  // pointy-top: corner straight up (-90 + 60k). flat-top: corner at 0 + 60k.
+  const off = ORIENT === "pointy" ? -90 : 0;
   const out: [number, number][] = [];
   for (let k = 0; k < 6; k++) {
-    // pointy-top: corners at -90,-30,30,90,150,210 deg -> top corner straight up
-    const a = (Math.PI / 180) * (60 * k - 90);
+    const a = (Math.PI / 180) * (60 * k + off);
     out.push([snap(cx + R * Math.cos(a)), snap(cy + R * Math.sin(a))]);
   }
   return out;
@@ -76,8 +83,14 @@ export function hexVertices(systemId: string, q: number, r: number): [number, nu
 // Pixel -> nearest hex cell (axial) for a given system, using cube rounding.
 export function pixelToHex(systemId: string, x: number, y: number): [number, number] {
   const R = SYSTEM_BY_ID[systemId].segmentLength;
-  const q = ((SQRT3 / 3) * x - (1 / 3) * y) / R;
-  const r = ((2 / 3) * y) / R;
+  let q: number, r: number;
+  if (ORIENT === "pointy") {
+    q = ((SQRT3 / 3) * x - (1 / 3) * y) / R;
+    r = ((2 / 3) * y) / R;
+  } else {
+    q = ((2 / 3) * x) / R;
+    r = ((-1 / 3) * x + (SQRT3 / 3) * y) / R;
+  }
   return axialRound(q, r);
 }
 

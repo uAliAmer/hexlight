@@ -2,11 +2,11 @@ import jsPDF from "jspdf";
 import { Doc } from "./geometry";
 import { computeBom } from "./bom";
 import { computeLux, LuxInput } from "./lux";
-import { CONNECTOR_LABELS } from "./spec";
+import { BarConfig, CONNECTOR_LABELS, defaultBarConfig } from "./spec";
 
-export function exportPdf(doc: Doc, lux: LuxInput, clusterExtentM: number) {
-  const bom = computeBom(doc);
-  const lx = computeLux(doc, { ...lux, clusterExtentM });
+export function exportPdf(doc: Doc, lux: LuxInput, clusterExtentM: number, config: BarConfig = defaultBarConfig()) {
+  const bom = computeBom(doc, config);
+  const lx = computeLux(doc, { ...lux, clusterExtentM }, config);
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const M = 18;
   let y = M;

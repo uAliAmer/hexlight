@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Editor } from "../store";
 import {
   buildGraph,
+  hexCenter,
   hexVertices,
   pixelToHex,
   nearestLineEdge,
@@ -160,7 +161,7 @@ export default function Canvas({ ed }: P) {
           </filter>
         </defs>
 
-        <BackdropGrid size={size} view={view} hexSystem={ed.hexSystem} mode={ed.mode} sx={sx} sy={sy} />
+        <BackdropGrid size={size} view={view} hexSystem={ed.hexSystem} lineSystem={ed.lineSystem} mode={ed.mode} sx={sx} sy={sy} />
 
         <RoomOverlay w={ed.lux.roomWidthM} d={ed.lux.roomHeightM} scale={view.scale} sx={sx} sy={sy} />
 
@@ -263,11 +264,12 @@ function RoomOverlay({
 }
 
 function BackdropGrid({
-  size, view, hexSystem, mode, sx, sy,
+  size, view, hexSystem, lineSystem, mode, sx, sy,
 }: {
   size: { w: number; h: number };
   view: { scale: number; tx: number; ty: number };
   hexSystem: string;
+  lineSystem: string;
   mode: "hex" | "lines" | "move";
   sx: (x: number) => number;
   sy: (y: number) => number;
@@ -278,33 +280,27 @@ function BackdropGrid({
   const w1x = (size.w - view.tx) / view.scale;
   const w1y = (size.h - view.ty) / view.scale;
 
-  const SQRT3 = Math.sqrt(3);
-
-  // --- ghost hexagon placeholders (always shown) ---
+  // --- ghost hexagon placeholders (always shown, orientation-aware) ---
   const R = SYSTEM_BY_ID[hexSystem].segmentLength;
   const pad = R;
   const cells: JSX.Element[] = [];
   if (R * view.scale >= 14) {
-    const rOf = (y: number) => y / (1.5 * R);
-    const qOf = (x: number, r: number) => x / (R * SQRT3) - r / 2;
-    const rMin = Math.floor(rOf(w0y - pad)) - 1;
-    const rMax = Math.ceil(rOf(w1y + pad)) + 1;
-    if (rMax - rMin <= 120) {
+    // axial range from the four viewport corners
+    let qMin = Infinity, qMax = -Infinity, rMin = Infinity, rMax = -Infinity;
+    for (const [cx, cy] of [[w0x, w0y], [w1x, w0y], [w0x, w1y], [w1x, w1y]] as const) {
+      const [aq, ar] = pixelToHex(hexSystem, cx, cy);
+      qMin = Math.min(qMin, aq); qMax = Math.max(qMax, aq);
+      rMin = Math.min(rMin, ar); rMax = Math.max(rMax, ar);
+    }
+    qMin -= 1; qMax += 1; rMin -= 1; rMax += 1;
+    if ((qMax - qMin) * (rMax - rMin) <= 6000) {
       for (let r = rMin; r <= rMax; r++) {
-        const qMin = Math.floor(qOf(w0x - pad, r)) - 1;
-        const qMax = Math.ceil(qOf(w1x + pad, r)) + 1;
-        if (qMax - qMin > 200) break;
         for (let q = qMin; q <= qMax; q++) {
-          const cx = R * SQRT3 * (q + r / 2);
-          const cy = R * 1.5 * r;
+          const [cx, cy] = hexCenter(hexSystem, q, r);
           if (cx < w0x - pad || cx > w1x + pad || cy < w0y - pad || cy > w1y + pad) continue;
-          const pts: string[] = [];
-          for (let k = 0; k < 6; k++) {
-            const a = (Math.PI / 180) * (60 * k - 90);
-            pts.push(`${sx(cx + R * Math.cos(a))},${sy(cy + R * Math.sin(a))}`);
-          }
+          const pts = hexVertices(hexSystem, q, r).map(([x, y]) => `${sx(x)},${sy(y)}`).join(" ");
           cells.push(
-            <polygon key={`${q},${r}`} points={pts.join(" ")} fill="none" stroke={COLORS.border} strokeWidth={2} />,
+            <polygon key={`${q},${r}`} points={pts} fill="none" stroke={COLORS.border} strokeWidth={2} />,
           );
         }
         if (cells.length > 1800) break;
@@ -315,7 +311,7 @@ function BackdropGrid({
   // --- line lattice dots (only in lines mode) ---
   const dots: JSX.Element[] = [];
   if (mode === "lines") {
-    const L = SYSTEM_BY_ID.line1176.segmentLength;
+    const L = SYSTEM_BY_ID[lineSystem].segmentLength;
     if (L * view.scale >= 12) {
       const lp = L;
       const i0 = Math.floor((w0x - lp) / L), i1 = Math.ceil((w1x + lp) / L);

@@ -3,12 +3,13 @@
 
 import { adjacency, buildGraph, Doc, Graph } from "./geometry";
 import {
+  BarConfig,
   BarLength,
   ConnectorType,
   CONNECTOR_ORDER,
+  defaultBarConfig,
   MAX_WATTS_PER_RUN,
   SYSTEM_BY_ID,
-  WATTS_PER_BAR,
 } from "./spec";
 
 export interface NodeInfo {
@@ -72,7 +73,7 @@ export interface Bom {
 }
 
 // Connected components of active edges -> each is a power run.
-function powerRuns(g: Graph): { watts: number }[] {
+function powerRuns(g: Graph, wattsPerBar: Record<BarLength, number>): { watts: number }[] {
   const adj = adjacency(g);
   const seen = new Set<string>();
   const runs: { watts: number }[] = [];
@@ -92,7 +93,7 @@ function powerRuns(g: Graph): { watts: number }[] {
       for (const { nbr, edge } of adj.get(cur) ?? []) {
         if (!edgeSeen.has(edge.key)) {
           edgeSeen.add(edge.key);
-          watts += WATTS_PER_BAR[edge.len as BarLength] ?? 0;
+          watts += wattsPerBar[edge.len as BarLength] ?? 0;
         }
         if (!seen.has(nbr)) {
           seen.add(nbr);
@@ -105,7 +106,7 @@ function powerRuns(g: Graph): { watts: number }[] {
   return runs;
 }
 
-export function computeBom(doc: Doc): Bom {
+export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig()): Bom {
   const g = buildGraph(doc);
 
   // bars by length / system
@@ -138,7 +139,7 @@ export function computeBom(doc: Doc): Bom {
     .sort((a, b) => CONNECTOR_ORDER.indexOf(a.type) - CONNECTOR_ORDER.indexOf(b.type));
 
   // power
-  const runs = powerRuns(g);
+  const runs = powerRuns(g, config.wattsPerBar);
   const totalWatts = runs.reduce((a, r) => a + r.watts, 0);
   const powerInputs = runs.reduce((a, r) => a + Math.max(1, Math.ceil(r.watts / MAX_WATTS_PER_RUN)), 0);
 

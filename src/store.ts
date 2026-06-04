@@ -3,13 +3,16 @@ import {
   Doc,
   HexCell,
   LineSeg,
+  Orientation,
   emptyDoc,
+  hexCenter,
   hexId,
   lineId,
   nearestLineEdge,
   pixelToHex,
+  setOrientation,
 } from "./engine/geometry";
-import { SYSTEM_BY_ID } from "./engine/spec";
+import { BarConfig, defaultBarConfig, SYSTEM_BY_ID } from "./engine/spec";
 import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
 import { TEMPLATE_BY_ID } from "./engine/templates";
@@ -98,18 +101,30 @@ export function useEditor() {
 
   const [mode, setMode] = useState<Mode>("hex");
   const [hexSystem, setHexSystem] = useState<string>("hex440");
+  const [lineSystem, setLineSystem] = useState<string>("line1176");
+  const [orientation, setOrient] = useState<Orientation>("pointy");
+  const [units, setUnits] = useState<"cm" | "ft">("cm");
+  const [barConfig, setBarConfig] = useState<BarConfig>(defaultBarConfig());
   const [view, setView] = useState<View>({ scale: 0.18, tx: 0, ty: 0 });
   const [lux, setLux] = useState<LuxInput>(defaultLux());
 
-  const activeSystem = mode === "lines" ? "line1176" : hexSystem;
+  const activeSystem = mode === "lines" ? lineSystem : hexSystem;
 
-  const bom = useMemo(() => computeBom(doc), [doc]);
+  const toggleOrientation = useCallback(() => {
+    setOrient((o) => {
+      const next = o === "pointy" ? "flat" : "pointy";
+      setOrientation(next); // update module-level geometry before re-render
+      return next;
+    });
+  }, []);
+
+  const bom = useMemo(() => computeBom(doc, barConfig), [doc, orientation, barConfig]);
 
   // cluster extent (m) for auto-drop, from bom-less quick bounds
-  const clusterExtentM = useMemo(() => extentM(doc), [doc]);
+  const clusterExtentM = useMemo(() => extentM(doc), [doc, orientation]);
   const luxResult = useMemo(
-    () => computeLux(doc, { ...lux, clusterExtentM }),
-    [doc, lux, clusterExtentM],
+    () => computeLux(doc, { ...lux, clusterExtentM }, barConfig),
+    [doc, lux, clusterExtentM, orientation, barConfig],
   );
 
   const placeAt = useCallback(
@@ -119,10 +134,10 @@ export function useEditor() {
         const [q, r] = pixelToHex(hexSystem, worldX, worldY);
         dispatch({ t: "toggleHex", systemId: hexSystem, q, r });
       } else {
-        dispatch({ t: "toggleLine", seg: nearestLineEdge("line1176", worldX, worldY) });
+        dispatch({ t: "toggleLine", seg: nearestLineEdge(lineSystem, worldX, worldY) });
       }
     },
-    [mode, hexSystem],
+    [mode, hexSystem, lineSystem],
   );
 
   // Move the whole layout by a world-space delta (mm). Hex shifts snap to axial
@@ -142,7 +157,15 @@ export function useEditor() {
     setMode,
     hexSystem,
     setHexSystem,
+    lineSystem,
+    setLineSystem,
     activeSystem,
+    orientation,
+    toggleOrientation,
+    units,
+    setUnits,
+    barConfig,
+    setBarConfig,
     view,
     setView,
     lux,
@@ -163,30 +186,14 @@ export function useEditor() {
 
 export type Editor = ReturnType<typeof useEditor>;
 
-const SQRT3 = Math.sqrt(3);
-function axialRound(q: number, r: number): [number, number] {
-  let x = q, z = r, y = -x - z;
-  let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
-  const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z);
-  if (dx > dy && dx > dz) rx = -ry - rz;
-  else if (dy > dz) ry = -rx - rz;
-  else rz = -rx - ry;
-  return [rx, rz];
-}
-
 // Rigidly translate the whole doc by a world delta (mm), snapping to the grid.
-// Returns null when the move rounds to no change.
+// Returns null when the move rounds to no change. Orientation-aware via geometry.
 function translateDoc(doc: Doc, dx: number, dy: number): Doc | null {
   const firstHex = Object.values(doc.hexes)[0];
   if (firstHex) {
-    const R = SYSTEM_BY_ID[firstHex.systemId].segmentLength;
-    const [dq, dr] = axialRound(
-      ((SQRT3 / 3) * dx - (1 / 3) * dy) / R,
-      ((2 / 3) * dy) / R,
-    );
+    const [dq, dr] = pixelToHex(firstHex.systemId, dx, dy); // rounded axial delta
     if (dq === 0 && dr === 0) return null;
-    const wdx = R * SQRT3 * (dq + dr / 2);
-    const wdy = R * 1.5 * dr;
+    const [wdx, wdy] = hexCenter(firstHex.systemId, dq, dr); // world delta (linear)
     const hexes: Record<string, HexCell> = {};
     for (const h of Object.values(doc.hexes)) {
       const q = h.q + dq, r = h.r + dr;
@@ -239,11 +246,8 @@ function extentM(doc: Doc): number {
   }
   // approximate hex centres via vertices is overkill here; use line + hex bounds lazily
   for (const h of Object.values(doc.hexes)) {
-    // cheap: treat each hex by its centre using same formula as geometry
-    const R =
-      h.systemId === "hex565" ? 565 : h.systemId === "line1176" ? 1176 : 440;
-    const cx = R * Math.sqrt(3) * (h.q + h.r / 2);
-    const cy = R * 1.5 * h.r;
+    const R = SYSTEM_BY_ID[h.systemId].segmentLength;
+    const [cx, cy] = hexCenter(h.systemId, h.q, h.r);
     pt(cx - R, cy - R);
     pt(cx + R, cy + R);
   }
