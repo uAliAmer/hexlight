@@ -31,6 +31,19 @@ export default function Canvas({ ed }: P) {
   }, []);
 
   const { view } = ed;
+
+  // fit the view to the room footprint whenever room size or canvas size changes
+  const roomW = ed.lux.roomWidthM * 1000;
+  const roomD = ed.lux.roomHeightM * 1000;
+  useEffect(() => {
+    if (size.w === 0 || !(roomW > 0) || !(roomD > 0)) return;
+    const pad = 80;
+    const s = Math.min(2, Math.max(0.03, Math.min((size.w - pad * 2) / roomW, (size.h - pad * 2) / roomD)));
+    // room is centred on the world origin
+    ed.setView({ scale: s, tx: size.w / 2, ty: size.h / 2 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomW, roomD, size.w, size.h]);
+
   const toWorld = (clientX: number, clientY: number) => {
     const r = wrapRef.current!.getBoundingClientRect();
     return {
@@ -147,7 +160,9 @@ export default function Canvas({ ed }: P) {
           </filter>
         </defs>
 
-        <BackdropGrid size={size} view={view} system={ed.activeSystem} mode={ed.mode} sx={sx} sy={sy} />
+        <BackdropGrid size={size} view={view} hexSystem={ed.hexSystem} mode={ed.mode} sx={sx} sy={sy} />
+
+        <RoomOverlay w={ed.lux.roomWidthM} d={ed.lux.roomHeightM} scale={view.scale} sx={sx} sy={sy} />
 
         {preview}
 
@@ -220,68 +235,103 @@ function fit(ed: Editor, size: { w: number; h: number }) {
   ed.setView({ scale: s, tx: size.w / 2 - ((minX + maxX) / 2) * s, ty: size.h / 2 - ((minY + maxY) / 2) * s });
 }
 
+// Room footprint overlay, centred on the world origin. Dimensions in metres.
+function RoomOverlay({
+  w, d, scale, sx, sy,
+}: {
+  w: number; d: number; scale: number;
+  sx: (x: number) => number; sy: (y: number) => number;
+}) {
+  if (!(w > 0) || !(d > 0)) return null;
+  const halfW = (w * 1000) / 2;
+  const halfD = (d * 1000) / 2;
+  const x = sx(-halfW), y = sy(-halfD);
+  const pw = w * 1000 * scale, ph = d * 1000 * scale;
+  return (
+    <g pointerEvents="none">
+      <rect x={x} y={y} width={pw} height={ph} fill="none" stroke={COLORS.accent}
+        strokeWidth={1.5} strokeDasharray="8 6" rx={4} />
+      <text x={x + pw / 2} y={y - 8} fill={COLORS.accent} fontSize={13} textAnchor="middle"
+        fontFamily="Barlow Condensed, sans-serif" letterSpacing={0.5}>
+        ROOM {w.toFixed(1)} × {d.toFixed(1)} m
+      </text>
+      <text x={x + 6} y={y + ph - 6} fill={COLORS.muted} fontSize={11}>
+        {(w * d).toFixed(1)} m²
+      </text>
+    </g>
+  );
+}
+
 function BackdropGrid({
-  size, view, system, mode, sx, sy,
+  size, view, hexSystem, mode, sx, sy,
 }: {
   size: { w: number; h: number };
   view: { scale: number; tx: number; ty: number };
-  system: string;
+  hexSystem: string;
   mode: "hex" | "lines" | "move";
   sx: (x: number) => number;
   sy: (y: number) => number;
 }) {
-  const R = SYSTEM_BY_ID[system].segmentLength;
-
   // world bounds of the viewport
   const w0x = (0 - view.tx) / view.scale;
   const w0y = (0 - view.ty) / view.scale;
   const w1x = (size.w - view.tx) / view.scale;
   const w1y = (size.h - view.ty) / view.scale;
-  const pad = R; // one cell margin
 
-  if (mode === "lines") {
-    // square lattice of bar-length cells
-    const stepPx = R * view.scale;
-    if (stepPx < 10) return null;
-    const lines: JSX.Element[] = [];
-    const i0 = Math.floor((w0x - pad) / R), i1 = Math.ceil((w1x + pad) / R);
-    const j0 = Math.floor((w0y - pad) / R), j1 = Math.ceil((w1y + pad) / R);
-    if ((i1 - i0) * (j1 - j0) > 4000) return null;
-    for (let i = i0; i <= i1; i++)
-      lines.push(<line key={`v${i}`} x1={sx(i * R)} y1={sy(j0 * R)} x2={sx(i * R)} y2={sy(j1 * R)} stroke={COLORS.border} strokeWidth={1} />);
-    for (let j = j0; j <= j1; j++)
-      lines.push(<line key={`h${j}`} x1={sx(i0 * R)} y1={sy(j * R)} x2={sx(i1 * R)} y2={sy(j * R)} stroke={COLORS.border} strokeWidth={1} />);
-    return <g opacity={0.6}>{lines}</g>;
-  }
-
-  // ghost hexagon placeholders (pointy-top), like the real app
-  if (R * view.scale < 14) return null; // too zoomed out
   const SQRT3 = Math.sqrt(3);
-  const rOf = (y: number) => y / (1.5 * R);
-  const qOf = (x: number, r: number) => x / (R * SQRT3) - r / 2;
-  const rMin = Math.floor(rOf(w0y - pad)) - 1;
-  const rMax = Math.ceil(rOf(w1y + pad)) + 1;
-  if (rMax - rMin > 120) return null;
 
+  // --- ghost hexagon placeholders (always shown) ---
+  const R = SYSTEM_BY_ID[hexSystem].segmentLength;
+  const pad = R;
   const cells: JSX.Element[] = [];
-  for (let r = rMin; r <= rMax; r++) {
-    const qMin = Math.floor(qOf(w0x - pad, r)) - 1;
-    const qMax = Math.ceil(qOf(w1x + pad, r)) + 1;
-    if (qMax - qMin > 200) return null;
-    for (let q = qMin; q <= qMax; q++) {
-      const cx = R * SQRT3 * (q + r / 2);
-      const cy = R * 1.5 * r;
-      if (cx < w0x - pad || cx > w1x + pad || cy < w0y - pad || cy > w1y + pad) continue;
-      const pts: string[] = [];
-      for (let k = 0; k < 6; k++) {
-        const a = (Math.PI / 180) * (60 * k - 90);
-        pts.push(`${sx(cx + R * Math.cos(a))},${sy(cy + R * Math.sin(a))}`);
+  if (R * view.scale >= 14) {
+    const rOf = (y: number) => y / (1.5 * R);
+    const qOf = (x: number, r: number) => x / (R * SQRT3) - r / 2;
+    const rMin = Math.floor(rOf(w0y - pad)) - 1;
+    const rMax = Math.ceil(rOf(w1y + pad)) + 1;
+    if (rMax - rMin <= 120) {
+      for (let r = rMin; r <= rMax; r++) {
+        const qMin = Math.floor(qOf(w0x - pad, r)) - 1;
+        const qMax = Math.ceil(qOf(w1x + pad, r)) + 1;
+        if (qMax - qMin > 200) break;
+        for (let q = qMin; q <= qMax; q++) {
+          const cx = R * SQRT3 * (q + r / 2);
+          const cy = R * 1.5 * r;
+          if (cx < w0x - pad || cx > w1x + pad || cy < w0y - pad || cy > w1y + pad) continue;
+          const pts: string[] = [];
+          for (let k = 0; k < 6; k++) {
+            const a = (Math.PI / 180) * (60 * k - 90);
+            pts.push(`${sx(cx + R * Math.cos(a))},${sy(cy + R * Math.sin(a))}`);
+          }
+          cells.push(
+            <polygon key={`${q},${r}`} points={pts.join(" ")} fill="none" stroke={COLORS.border} strokeWidth={2} />,
+          );
+        }
+        if (cells.length > 1800) break;
       }
-      cells.push(
-        <polygon key={`${q},${r}`} points={pts.join(" ")} fill="none" stroke={COLORS.border} strokeWidth={1} />,
-      );
     }
-    if (cells.length > 1800) break;
   }
-  return <g opacity={0.55}>{cells}</g>;
+
+  // --- line lattice dots (only in lines mode) ---
+  const dots: JSX.Element[] = [];
+  if (mode === "lines") {
+    const L = SYSTEM_BY_ID.line1176.segmentLength;
+    if (L * view.scale >= 12) {
+      const lp = L;
+      const i0 = Math.floor((w0x - lp) / L), i1 = Math.ceil((w1x + lp) / L);
+      const j0 = Math.floor((w0y - lp) / L), j1 = Math.ceil((w1y + lp) / L);
+      if ((i1 - i0) * (j1 - j0) <= 4000) {
+        for (let i = i0; i <= i1; i++)
+          for (let j = j0; j <= j1; j++)
+            dots.push(<circle key={`d${i}-${j}`} cx={sx(i * L)} cy={sy(j * L)} r={2.2} fill={COLORS.borderHi} />);
+      }
+    }
+  }
+
+  return (
+    <>
+      <g opacity={0.55}>{cells}</g>
+      {dots.length > 0 && <g opacity={0.9}>{dots}</g>}
+    </>
+  );
 }

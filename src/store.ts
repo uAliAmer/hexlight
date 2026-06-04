@@ -80,9 +80,9 @@ export interface View {
 
 const defaultLux = (): LuxInput => ({
   useCaseId: "garage",
-  roomWidthM: 6,
+  roomWidthM: 5,
   roomHeightM: 6,
-  ceilingHeightM: 2.6,
+  ceilingHeightM: 2.8,
   mountingMode: "flush",
   dropM: 0.3,
   clusterExtentM: 1,

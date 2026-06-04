@@ -52,7 +52,7 @@ export default function Sidebar({ ed }: { ed: Editor }) {
       </Section>
 
       {/* Light Check */}
-      <Section title="Light check" beta>
+      <Section title="Light check" beta className="top">
         <Field label="Space">
           <select value={lux.useCaseId} onChange={(e) => ed.setLux({ ...lux, useCaseId: e.target.value })}>
             {USE_CASES.map((u) => (
@@ -124,9 +124,9 @@ export default function Sidebar({ ed }: { ed: Editor }) {
   );
 }
 
-function Section({ title, children, beta }: { title: string; children: React.ReactNode; beta?: boolean }) {
+function Section({ title, children, beta, className }: { title: string; children: React.ReactNode; beta?: boolean; className?: string }) {
   return (
-    <section className="panel">
+    <section className={`panel ${className ?? ""}`}>
       <h3 className="panel-title">
         {title}
         {beta && <span className="beta">beta</span>}
