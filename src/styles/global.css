@@ -113,7 +113,9 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- Canvas ---------- */
 .canvas-wrap { position: relative; flex: 1; min-width: 0; background:
-  radial-gradient(circle at 50% 40%, #0c0f16 0%, var(--bg) 70%); }
+  radial-gradient(circle at 50% 40%, #0c0f16 0%, var(--bg) 70%);
+  user-select: none; -webkit-user-select: none; }
+.canvas-wrap svg, .canvas-wrap svg text { user-select: none; }
 .canvas-hud {
   position: absolute; left: 12px; bottom: 12px; display: flex; align-items: center; gap: 8px;
   font-size: 12px; color: var(--muted); background: #0a0c11cc; padding: 6px 10px;

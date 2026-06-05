@@ -30,6 +30,8 @@ export default function Canvas({ ed }: P) {
   const paint = useRef<{ erase: boolean; visited: Set<string>; moved: boolean; fx: number; fy: number } | null>(null);
   const work = useRef<Doc | null>(null);
   const space = useRef(false);
+  const edRef = useRef(ed);
+  edRef.current = ed;
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -84,19 +86,24 @@ export default function Canvas({ ed }: P) {
   const sx = (x: number) => x * view.scale + view.tx;
   const sy = (y: number) => y * view.scale + view.ty;
 
-  // wheel zoom around cursor
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const r = wrapRef.current!.getBoundingClientRect();
-    const cx = e.clientX - r.left,
-      cy = e.clientY - r.top;
-    const factor = Math.exp(-e.deltaY * 0.0012);
-    const ns = Math.min(2, Math.max(0.03, view.scale * factor));
-    // keep world point under cursor fixed
-    const wx = (cx - view.tx) / view.scale;
-    const wy = (cy - view.ty) / view.scale;
-    ed.setView({ scale: ns, tx: cx - wx * ns, ty: cy - wy * ns });
-  };
+  // native non-passive wheel handler so Ctrl+wheel zooms the canvas, not the page
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const ed = edRef.current;
+      const v = ed.view;
+      const r = el.getBoundingClientRect();
+      const cx = e.clientX - r.left, cy = e.clientY - r.top;
+      const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.0025 : 0.0012));
+      const ns = Math.min(2, Math.max(0.03, v.scale * factor));
+      const wx = (cx - v.tx) / v.scale, wy = (cy - v.ty) / v.scale;
+      ed.setView({ scale: ns, tx: cx - wx * ns, ty: cy - wy * ns });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   // apply one cell into the working doc during a paint stroke
   const paintAt = (clientX: number, clientY: number) => {
@@ -233,7 +240,7 @@ export default function Canvas({ ed }: P) {
   const ledStroke = cct.rgbic ? "url(#rgbic)" : cct.color;
 
   return (
-    <div ref={wrapRef} className="canvas-wrap" onWheel={onWheel}>
+    <div ref={wrapRef} className="canvas-wrap">
       <svg
         width={size.w}
         height={size.h}
