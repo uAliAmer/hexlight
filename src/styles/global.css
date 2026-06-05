@@ -419,7 +419,7 @@ button { font-family: inherit; cursor: pointer; }
   .tb-row { gap: 7px; padding: 6px 10px; }
   .tb-label { display: none; }
   .tb-title { display: none; }
-  .brand span { display: none; }
+  .tb .brand span { display: none; }
   .tb-name { min-width: 90px; max-width: 150px; font-size: 13px; }
   .tb-select, .tbtn, .seg button { font-size: 12px; }
   .cfg-pop { width: 240px; }
