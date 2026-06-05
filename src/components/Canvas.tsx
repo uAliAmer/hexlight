@@ -240,6 +240,10 @@ export default function Canvas({ ed }: P) {
   const cct = CCT_BY_ID[ed.cctId] ?? CCT_BY_ID["6500"];
   const ledStroke = cct.rgbic ? "url(#rgbic)" : cct.color;
 
+  // placement markers: power cords (always) + hangers (suspended only)
+  const suspended = ed.lux.mountingMode === "suspended";
+  const HANGER = "#7df0ff";
+
   return (
     <div ref={wrapRef} className="canvas-wrap">
       <svg
@@ -316,6 +320,30 @@ export default function Canvas({ ed }: P) {
             <g key={n.key}>
               <circle cx={sx(n.x)} cy={sy(n.y)} r={rad + 1.5} fill={power ? COLORS.amber : COLORS.node} />
               <circle cx={sx(n.x)} cy={sy(n.y)} r={rad} fill={COLORS.surface} stroke={power ? COLORS.amber : COLORS.node} strokeWidth={1.5} />
+            </g>
+          );
+        })}
+
+        {/* hanger anchors (suspended mount) — cable up to ceiling */}
+        {suspended && ed.bom.hangerPoints.map((p, i) => {
+          const cx = sx(p.x), cy = sy(p.y), h = barPx * 2.6;
+          return (
+            <g key={`hg${i}`} pointerEvents="none">
+              <line x1={cx} y1={cy} x2={cx} y2={cy - h} stroke={HANGER} strokeWidth={1.4} strokeDasharray="3 2" />
+              <line x1={cx - barPx * 0.55} y1={cy - h} x2={cx + barPx * 0.55} y2={cy - h} stroke={HANGER} strokeWidth={2.2} strokeLinecap="round" />
+              <circle cx={cx} cy={cy} r={barPx * 0.34} fill={HANGER} />
+            </g>
+          );
+        })}
+
+        {/* power cord plug points (always) */}
+        {ed.bom.powerPoints.map((p, i) => {
+          const cx = sx(p.x), cy = sy(p.y), r = barPx * 0.62;
+          return (
+            <g key={`pw${i}`} pointerEvents="none">
+              <circle cx={cx} cy={cy} r={r + 2} fill={COLORS.amber} />
+              <circle cx={cx} cy={cy} r={r} fill={COLORS.bg} stroke={COLORS.amber} strokeWidth={1.5} />
+              <text x={cx} y={cy} fill={COLORS.amber} fontSize={r * 1.5} textAnchor="middle" dominantBaseline="central">⚡</text>
             </g>
           );
         })}

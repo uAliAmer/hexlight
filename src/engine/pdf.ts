@@ -8,7 +8,7 @@ import { BarConfig, CCT_BY_ID, CONNECTOR_LABELS, defaultBarConfig } from "./spec
 const SITE = "https://147hex.pages.dev";
 
 // Build an SVG of the layout (dark panel, glowing bars) for the report.
-function layoutSvg(doc: Doc, cctId: string): string {
+function layoutSvg(doc: Doc, cctId: string, powerPoints: { x: number; y: number }[], hangerPoints: { x: number; y: number }[]): string {
   const g = buildGraph(doc);
   if (g.nodes.size === 0) {
     return `<div style="display:flex;align-items:center;justify-content:center;height:320px;color:#4a6070">— تصميم فارغ —</div>`;
@@ -45,10 +45,20 @@ function layoutSvg(doc: Doc, cctId: string): string {
   for (const n of g.nodes.values()) {
     nodes += `<circle cx="${n.x}" cy="${n.y}" r="${sw * 1.1}" fill="#3d87f5"/>`;
   }
+  const mr = sw * 2.4; // marker radius
+  let hangers = "";
+  for (const p of hangerPoints) {
+    const h = mr * 2.2;
+    hangers += `<line x1="${p.x}" y1="${p.y}" x2="${p.x}" y2="${p.y - h}" stroke="#7df0ff" stroke-width="${sw * 0.7}" stroke-dasharray="${sw} ${sw * 0.7}"/><line x1="${p.x - mr}" y1="${p.y - h}" x2="${p.x + mr}" y2="${p.y - h}" stroke="#7df0ff" stroke-width="${sw}" stroke-linecap="round"/><circle cx="${p.x}" cy="${p.y}" r="${mr * 0.5}" fill="#7df0ff"/>`;
+  }
+  let powers = "";
+  for (const p of powerPoints) {
+    powers += `<circle cx="${p.x}" cy="${p.y}" r="${mr + sw * 0.4}" fill="#FFB830"/><circle cx="${p.x}" cy="${p.y}" r="${mr}" fill="#0b0e14" stroke="#FFB830" stroke-width="${sw * 0.6}"/><text x="${p.x}" y="${p.y}" fill="#FFB830" font-size="${mr * 1.5}" text-anchor="middle" dominant-baseline="central">⚡</text>`;
+  }
   return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:340px;display:block">
     ${rgbicDef}
     <rect x="${minX - pad}" y="${minY - pad}" width="${W}" height="${H}" fill="#0b0e14"/>
-    <g style="filter:drop-shadow(0 0 ${sw * 1.4}px ${glow}aa)">${bars}</g>${nodes}
+    <g style="filter:drop-shadow(0 0 ${sw * 1.4}px ${glow}aa)">${bars}</g>${nodes}${hangers}${powers}
   </svg>`;
 }
 
@@ -96,7 +106,7 @@ export async function exportPdf(
     </div>
 
     <div style="border:1px solid #e6eaf0;border-radius:10px;overflow:hidden;margin-bottom:18px">
-      ${layoutSvg(doc, cctId)}
+      ${layoutSvg(doc, cctId, bom.powerPoints, lux.mountingMode === "suspended" ? bom.hangerPoints : [])}
     </div>
 
     <div style="display:flex;gap:24px;margin-bottom:16px">

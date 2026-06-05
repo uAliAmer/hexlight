@@ -53,6 +53,8 @@ export function nodeInfos(g: Graph): Map<string, NodeInfo> {
   return out;
 }
 
+export interface Point { x: number; y: number }
+
 export interface SegmentGroup {
   systemId: string;
   label: string;
@@ -74,6 +76,8 @@ export interface Bom {
   totalSegments: number;
   totalConnectors: number;
   suspensionPoints: number; // cables for suspended mounting: one per junction + free end
+  powerPoints: Point[]; // where each power cord plugs in (world mm)
+  hangerPoints: Point[]; // where suspension cables attach (world mm)
 }
 
 // Connected components of active edges -> each is a power run (with its nodes).
@@ -141,47 +145,69 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     (a, b) => a.segmentLengthMm - b.segmentLengthMm,
   );
 
-  // connectors + suspension points (anchor at every junction ≥3 and free end =1)
+  // base connectors
   const infos = nodeInfos(g);
   const counts = new Map<ConnectorType, number>();
-  let suspensionPoints = 0;
   for (const info of infos.values()) {
-    const deg = info.dirs.length;
-    if (deg === 1 || deg >= 3) suspensionPoints++;
-    if (!info.type) continue;
-    counts.set(info.type, (counts.get(info.type) ?? 0) + 1);
+    if (info.type) counts.set(info.type, (counts.get(info.type) ?? 0) + 1);
   }
-  if (suspensionPoints < 2 && g.edges.size > 0) suspensionPoints = 2; // a bar needs both ends held
+  const xy = (k: string): Point => ({ x: infos.get(k)!.x, y: infos.get(k)!.y });
 
-  // power runs + power-cord ports: each cord needs one free port. Open bar ends
-  // (degree 1) are free; otherwise upgrade one connector in that run by a port.
+  // power runs + power-cord ports + hangers, per connected run.
+  // - Each cord needs a free port: an open bar end (degree 1) is free, else
+  //   upgrade one connector by a port (V->Y, I/L->T, Y/T->X) at the cord node.
+  // - Hangers: every junction (deg>=3) + free end (deg 1); a pure loop with
+  //   neither gets two spread-out anchors.
   const runs = powerRuns(g, config.wattsPerBar);
   const totalWatts = runs.reduce((a, r) => a + r.watts, 0);
   let powerInputs = 0;
+  const powerPoints: Point[] = [];
+  const hangerPoints: Point[] = [];
+
   for (const run of runs) {
+    const deg = (k: string) => infos.get(k)?.dirs.length ?? 0;
     const inputs = Math.max(1, Math.ceil(run.watts / MAX_WATTS_PER_RUN));
     powerInputs += inputs;
-    const openEnds = run.nodes.filter((k) => (infos.get(k)?.dirs.length ?? 0) === 1).length;
-    let deficit = Math.max(0, inputs - openEnds);
-    if (deficit === 0) continue;
-    // connector types available to upgrade within this run
-    const local = new Map<ConnectorType, number>();
-    for (const k of run.nodes) {
-      const t = infos.get(k)?.type;
-      if (t) local.set(t, (local.get(t) ?? 0) + 1);
-    }
-    for (const from of UPGRADE_PREFERENCE) {
-      const to = PORT_UPGRADE[from];
-      if (!to) continue;
-      while (deficit > 0 && (local.get(from) ?? 0) > 0) {
-        local.set(from, local.get(from)! - 1);
-        counts.set(from, (counts.get(from) ?? 0) - 1);
-        counts.set(to, (counts.get(to) ?? 0) + 1);
-        deficit--;
+
+    // cord attach points: open ends first, then upgraded connectors
+    const ends = run.nodes.filter((k) => deg(k) === 1);
+    const cordNodes: string[] = ends.slice(0, inputs);
+    let need = inputs - cordNodes.length;
+    if (need > 0) {
+      const byType = new Map<ConnectorType, string[]>();
+      for (const k of run.nodes) {
+        const t = infos.get(k)?.type;
+        if (t) (byType.get(t) ?? byType.set(t, []).get(t)!).push(k);
       }
-      if (deficit === 0) break;
+      for (const from of UPGRADE_PREFERENCE) {
+        const to = PORT_UPGRADE[from];
+        const pool = byType.get(from);
+        if (!to || !pool) continue;
+        while (need > 0 && pool.length > 0) {
+          const k = pool.pop()!;
+          counts.set(from, (counts.get(from) ?? 0) - 1);
+          counts.set(to, (counts.get(to) ?? 0) + 1);
+          cordNodes.push(k);
+          need--;
+        }
+        if (need === 0) break;
+      }
+    }
+    for (const k of cordNodes) powerPoints.push(xy(k));
+
+    // hangers
+    const anchors = run.nodes.filter((k) => deg(k) === 1 || deg(k) >= 3);
+    if (anchors.length === 0) {
+      // pure loop: two most-separated nodes
+      const sorted = [...run.nodes].sort(
+        (a, b) => infos.get(a)!.x + infos.get(a)!.y - (infos.get(b)!.x + infos.get(b)!.y),
+      );
+      if (sorted.length) { hangerPoints.push(xy(sorted[0])); if (sorted.length > 1) hangerPoints.push(xy(sorted[sorted.length - 1])); }
+    } else {
+      for (const k of anchors) hangerPoints.push(xy(k));
     }
   }
+  const suspensionPoints = hangerPoints.length;
 
   const connectorCounts = [...counts.entries()]
     .filter(([, c]) => c > 0)
@@ -204,5 +230,7 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     totalSegments,
     totalConnectors,
     suspensionPoints,
+    powerPoints,
+    hangerPoints,
   };
 }
