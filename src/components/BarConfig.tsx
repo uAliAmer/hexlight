@@ -1,5 +1,6 @@
 import { Editor } from "../store";
 import { BAR_LENGTHS, BarLength, defaultBarConfig } from "../engine/spec";
+import NumField from "./NumField";
 
 export default function BarConfig({ ed, onClose }: { ed: Editor; onClose: () => void }) {
   const c = ed.barConfig;
@@ -16,8 +17,7 @@ export default function BarConfig({ ed, onClose }: { ed: Editor; onClose: () => 
         <div className="cfg-row">
           <span>Efficacy</span>
           <div className="cfg-num">
-            <input type="number" min={1} step={1} value={c.lmPerW}
-              onChange={(e) => set({ lmPerW: +e.target.value })} />
+            <NumField min={1} step={1} value={c.lmPerW} onChange={(v) => set({ lmPerW: v })} />
             <i>lm/W</i>
           </div>
         </div>
@@ -25,8 +25,8 @@ export default function BarConfig({ ed, onClose }: { ed: Editor; onClose: () => 
         <div className="cfg-row">
           <span>Driver eff.</span>
           <div className="cfg-num">
-            <input type="number" min={1} max={100} step={1} value={Math.round(c.driverEff * 100)}
-              onChange={(e) => set({ driverEff: +e.target.value / 100 })} />
+            <NumField min={1} max={100} step={1} value={Math.round(c.driverEff * 100)}
+              onChange={(v) => set({ driverEff: v / 100 })} />
             <i>%</i>
           </div>
         </div>
@@ -36,8 +36,7 @@ export default function BarConfig({ ed, onClose }: { ed: Editor; onClose: () => 
           <div className="cfg-row" key={len}>
             <span>{len} mm</span>
             <div className="cfg-num">
-              <input type="number" min={0} step={0.5} value={c.wattsPerBar[len]}
-                onChange={(e) => setWatts(len, +e.target.value)} />
+              <NumField min={0} step={0.5} value={c.wattsPerBar[len]} onChange={(v) => setWatts(len, v)} />
               <i>W</i>
             </div>
             <span className="cfg-lm">→ {Math.round(c.wattsPerBar[len] * c.lmPerW)} lm</span>

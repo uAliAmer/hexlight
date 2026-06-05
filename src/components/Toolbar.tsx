@@ -78,6 +78,10 @@ export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => 
 
         <div className="spacer" />
 
+        <div className="seg">
+          <button disabled={!ed.canUndo} onClick={ed.undo} title="Undo (Ctrl+Z)">↶</button>
+          <button disabled={!ed.canRedo} onClick={ed.redo} title="Redo (Ctrl+Shift+Z)">↷</button>
+        </div>
         <button className="tbtn" onClick={ed.clear}>New layout</button>
         <button className="tbtn" onClick={ed.clear}>Clear layout</button>
         <button className="tbtn primary" onClick={onExport}>Export PDF</button>

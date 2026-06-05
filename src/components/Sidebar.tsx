@@ -2,6 +2,7 @@ import { Editor } from "../store";
 import { CONNECTOR_LABELS, USE_CASES } from "../engine/spec";
 import { TEMPLATES } from "../engine/templates";
 import { MountingMode } from "../engine/lux";
+import NumField from "./NumField";
 
 export default function Sidebar({ ed }: { ed: Editor }) {
   const { bom, luxResult: lx, lux } = ed;
@@ -63,19 +64,19 @@ export default function Sidebar({ ed }: { ed: Editor }) {
 
         <div className="rsd-row">
           <Field label="Room W (m)">
-            <input type="number" min={0.5} step={0.1} value={lux.roomWidthM}
-              onChange={(e) => ed.setLux({ ...lux, roomWidthM: +e.target.value })} />
+            <NumField min={0.5} step={0.1} value={lux.roomWidthM}
+              onChange={(v) => ed.setLux({ ...lux, roomWidthM: v })} />
           </Field>
           <Field label="Room D (m)">
-            <input type="number" min={0.5} step={0.1} value={lux.roomHeightM}
-              onChange={(e) => ed.setLux({ ...lux, roomHeightM: +e.target.value })} />
+            <NumField min={0.5} step={0.1} value={lux.roomHeightM}
+              onChange={(v) => ed.setLux({ ...lux, roomHeightM: v })} />
           </Field>
         </div>
 
         <div className="rsd-row">
           <Field label="Ceiling (m)">
-            <input type="number" min={1.8} step={0.05} value={lux.ceilingHeightM}
-              onChange={(e) => ed.setLux({ ...lux, ceilingHeightM: +e.target.value })} />
+            <NumField min={1.8} step={0.05} value={lux.ceilingHeightM}
+              onChange={(v) => ed.setLux({ ...lux, ceilingHeightM: v })} />
           </Field>
           <Field label="Mounting">
             <div className="seg small">
@@ -91,8 +92,8 @@ export default function Sidebar({ ed }: { ed: Editor }) {
 
         {lux.mountingMode === "suspended" && (
           <Field label="Drop from ceiling (m)">
-            <input type="number" min={0.1} max={2} step={0.05} value={lux.dropM}
-              onChange={(e) => ed.setLux({ ...lux, dropM: +e.target.value })} />
+            <NumField min={0.1} max={2} step={0.05} value={lux.dropM}
+              onChange={(v) => ed.setLux({ ...lux, dropM: v })} />
           </Field>
         )}
 

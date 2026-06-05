@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Editor } from "../store";
 import {
   buildGraph,
+  Doc,
   hexCenter,
+  hexId,
   hexVertices,
   pixelToHex,
   nearestLineEdge,
@@ -19,8 +21,13 @@ export default function Canvas({ ed }: P) {
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [moveOff, setMoveOff] = useState<{ dx: number; dy: number } | null>(null);
+  const [paintDoc, setPaintDoc] = useState<Doc | null>(null);
+  const [keys, setKeys] = useState(false);
   const drag = useRef<{ x: number; y: number; tx: number; ty: number; moved: boolean } | null>(null);
   const mv = useRef<{ x: number; y: number } | null>(null);
+  const paint = useRef<{ erase: boolean; visited: Set<string>; moved: boolean; fx: number; fy: number } | null>(null);
+  const work = useRef<Doc | null>(null);
+  const space = useRef(false);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -30,6 +37,26 @@ export default function Canvas({ ed }: P) {
     setSize({ w: el.clientWidth, h: el.clientHeight });
     return () => ro.disconnect();
   }, []);
+
+  // hold Space to pan instead of paint
+  useEffect(() => {
+    const isField = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      return !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+    };
+    const d = (e: KeyboardEvent) => { if (e.code === "Space" && !isField(e.target)) { space.current = true; e.preventDefault(); } };
+    const u = (e: KeyboardEvent) => { if (e.code === "Space") space.current = false; };
+    window.addEventListener("keydown", d);
+    window.addEventListener("keyup", u);
+    return () => { window.removeEventListener("keydown", d); window.removeEventListener("keyup", u); };
+  }, []);
+
+  // 'F' key (handled in AppEditor) asks the canvas to fit
+  useEffect(() => {
+    const f = () => fit(ed, size);
+    window.addEventListener("hl-fit", f);
+    return () => window.removeEventListener("hl-fit", f);
+  }, [ed, size]);
 
   const { view } = ed;
 
@@ -69,15 +96,46 @@ export default function Canvas({ ed }: P) {
     ed.setView({ scale: ns, tx: cx - wx * ns, ty: cy - wy * ns });
   };
 
+  // apply one cell into the working doc during a paint stroke
+  const paintAt = (clientX: number, clientY: number) => {
+    const p = paint.current;
+    const w = work.current;
+    if (!p || !w) return;
+    const { x, y } = toWorld(clientX, clientY);
+    if (ed.mode === "lines") {
+      const seg = nearestLineEdge(ed.lineSystem, x, y);
+      if (p.visited.has(seg.id)) return;
+      p.visited.add(seg.id);
+      if (p.erase) delete w.lines[seg.id];
+      else w.lines[seg.id] = seg;
+    } else {
+      const [q, r] = pixelToHex(ed.hexSystem, x, y);
+      const id = hexId(ed.hexSystem, q, r);
+      if (p.visited.has(id)) return;
+      p.visited.add(id);
+      if (p.erase) delete w.hexes[id];
+      else w.hexes[id] = { id, systemId: ed.hexSystem, q, r };
+    }
+    setPaintDoc({ hexes: { ...w.hexes }, lines: { ...w.lines } });
+  };
+
   const onDown = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture?.(e.pointerId);
+    const wantPan = e.button === 1 || e.button === 2 || space.current;
+    if (wantPan) {
+      drag.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty, moved: false };
+      return;
+    }
     if (ed.mode === "move") {
       mv.current = { x: e.clientX, y: e.clientY };
       setMoveOff({ dx: 0, dy: 0 });
-    } else {
-      drag.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty, moved: false };
+      return;
     }
+    // hex / lines: begin a paint stroke (commit happens on pointer up)
+    work.current = { hexes: { ...ed.doc.hexes }, lines: { ...ed.doc.lines } };
+    paint.current = { erase: e.shiftKey || e.altKey, visited: new Set(), moved: false, fx: e.clientX, fy: e.clientY };
   };
+
   const onMove = (e: React.PointerEvent) => {
     const w = toWorld(e.clientX, e.clientY);
     setHover(w);
@@ -89,29 +147,49 @@ export default function Canvas({ ed }: P) {
       const dx = e.clientX - drag.current.x;
       const dy = e.clientY - drag.current.y;
       if (Math.abs(dx) + Math.abs(dy) > 4) drag.current.moved = true;
-      if (drag.current.moved)
-        ed.setView({ ...view, tx: drag.current.tx + dx, ty: drag.current.ty + dy });
+      if (drag.current.moved) ed.setView({ ...view, tx: drag.current.tx + dx, ty: drag.current.ty + dy });
+      return;
+    }
+    if (paint.current) {
+      const d = Math.abs(e.clientX - paint.current.fx) + Math.abs(e.clientY - paint.current.fy);
+      if (d > 4) {
+        if (!paint.current.moved) {
+          paint.current.moved = true;
+          paintAt(paint.current.fx, paint.current.fy); // include the start cell
+        }
+        paintAt(e.clientX, e.clientY);
+      }
     }
   };
+
   const onUp = (e: React.PointerEvent) => {
     if (mv.current) {
       const dx = e.clientX - mv.current.x;
       const dy = e.clientY - mv.current.y;
       mv.current = null;
       setMoveOff(null);
-      // screen px -> world mm
       ed.translateDoc(dx / view.scale, dy / view.scale);
       return;
     }
-    const d = drag.current;
-    drag.current = null;
-    if (d && !d.moved) {
-      const w = toWorld(e.clientX, e.clientY);
-      ed.placeAt(w.x, w.y);
+    if (drag.current) {
+      drag.current = null;
+      return;
+    }
+    if (paint.current) {
+      const p = paint.current;
+      paint.current = null;
+      if (p.moved && work.current) {
+        ed.setDoc(work.current); // one undo entry for the whole stroke
+      } else {
+        const w = toWorld(e.clientX, e.clientY);
+        ed.placeAt(w.x, w.y); // plain click = toggle single cell
+      }
+      work.current = null;
+      setPaintDoc(null);
     }
   };
 
-  const g = buildGraph(ed.doc);
+  const g = buildGraph(paintDoc ?? ed.doc);
   const infos = nodeInfos(g);
   const shorten = 8.9; // barEndToConnectorCenterMm
 
@@ -145,6 +223,7 @@ export default function Canvas({ ed }: P) {
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
+        onContextMenu={(e) => e.preventDefault()}
         style={{
           touchAction: "none",
           display: "block",
@@ -213,7 +292,26 @@ export default function Canvas({ ed }: P) {
         <span>·</span>
         <span>{Math.round(view.scale * 1000) / 10} px/m</span>
         <button className="hud-btn" onClick={() => fit(ed, size)}>Fit</button>
+        <button className="hud-btn ghost" onClick={() => setKeys((v) => !v)} title="Shortcuts">⌨</button>
       </div>
+
+      {keys && (
+        <div className="keys-panel" onClick={() => setKeys(false)}>
+          <h4>Shortcuts</h4>
+          <ul>
+            <li><b>Drag</b> paint cells</li>
+            <li><b>Shift / Alt-drag</b> erase</li>
+            <li><b>Click</b> toggle one</li>
+            <li><b>Right / Middle / Space-drag</b> pan</li>
+            <li><b>Scroll</b> zoom</li>
+            <li><b>H / L / M</b> Hex · Lines · Move</li>
+            <li><b>1 / 2</b> bar size</li>
+            <li><b>O</b> orientation · <b>F</b> fit</li>
+            <li><b>⌘/Ctrl+Z</b> undo · <b>+Shift</b> redo</li>
+            <li><b>Shift+C</b> clear</li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -284,7 +382,8 @@ function BackdropGrid({
   const R = SYSTEM_BY_ID[hexSystem].segmentLength;
   const pad = R;
   const cells: JSX.Element[] = [];
-  if (R * view.scale >= 14) {
+  const MAX_CELLS = 3000;
+  if (R * view.scale >= 5) {
     // axial range from the four viewport corners
     let qMin = Infinity, qMax = -Infinity, rMin = Infinity, rMax = -Infinity;
     for (const [cx, cy] of [[w0x, w0y], [w1x, w0y], [w0x, w1y], [w1x, w1y]] as const) {
@@ -293,17 +392,17 @@ function BackdropGrid({
       rMin = Math.min(rMin, ar); rMax = Math.max(rMax, ar);
     }
     qMin -= 1; qMax += 1; rMin -= 1; rMax += 1;
-    if ((qMax - qMin) * (rMax - rMin) <= 6000) {
-      for (let r = rMin; r <= rMax; r++) {
-        for (let q = qMin; q <= qMax; q++) {
-          const [cx, cy] = hexCenter(hexSystem, q, r);
-          if (cx < w0x - pad || cx > w1x + pad || cy < w0y - pad || cy > w1y + pad) continue;
-          const pts = hexVertices(hexSystem, q, r).map(([x, y]) => `${sx(x)},${sy(y)}`).join(" ");
-          cells.push(
-            <polygon key={`${q},${r}`} points={pts} fill="none" stroke={COLORS.border} strokeWidth={2} />,
-          );
-        }
-        if (cells.length > 1800) break;
+    // thinner stroke as hexes shrink, so a zoomed-out field stays legible
+    const stroke = R * view.scale < 10 ? 1 : 2;
+    outer: for (let r = rMin; r <= rMax; r++) {
+      for (let q = qMin; q <= qMax; q++) {
+        const [cx, cy] = hexCenter(hexSystem, q, r);
+        if (cx < w0x - pad || cx > w1x + pad || cy < w0y - pad || cy > w1y + pad) continue;
+        const pts = hexVertices(hexSystem, q, r).map(([x, y]) => `${sx(x)},${sy(y)}`).join(" ");
+        cells.push(
+          <polygon key={`${q},${r}`} points={pts} fill="none" stroke={COLORS.border} strokeWidth={stroke} />,
+        );
+        if (cells.length >= MAX_CELLS) break outer;
       }
     }
   }
