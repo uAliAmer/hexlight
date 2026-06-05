@@ -10,6 +10,7 @@ import {
   defaultBarConfig,
   MAX_WATTS_PER_RUN,
   SYSTEM_BY_ID,
+  SYSTEMS,
 } from "./spec";
 
 export interface NodeInfo {
@@ -149,7 +150,7 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig()): Bo
   const totalConnectors = connectorCounts.reduce((a, c) => a + c.count, 0);
   for (const s of segmentGroups) estimatedPrice += s.count * SYSTEM_BY_ID[s.systemId].pricePerSegment;
   // connectors/PSU priced at the dominant system's rate
-  const domSys = segmentGroups[0] ? SYSTEM_BY_ID[segmentGroups[0].systemId] : SYSTEM_BY_ID.hex440;
+  const domSys = segmentGroups[0] ? SYSTEM_BY_ID[segmentGroups[0].systemId] : SYSTEMS[0];
   estimatedPrice += totalConnectors * domSys.pricePerConnector;
   estimatedPrice += powerInputs * domSys.pricePerPowerSupply;
 

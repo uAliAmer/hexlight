@@ -100,8 +100,8 @@ export function useEditor() {
   const doc = docState.present;
 
   const [mode, setMode] = useState<Mode>("hex");
-  const [hexSystem, setHexSystem] = useState<string>("hex440");
-  const [lineSystem, setLineSystem] = useState<string>("line1176");
+  const [hexSystem, setHexSystem] = useState<string>("t5_60");
+  const [lineSystem, setLineSystem] = useState<string>("t5_120");
   const [orientation, setOrient] = useState<Orientation>("pointy");
   const [units, setUnits] = useState<"m" | "cm">("m");
   const [cctId, setCctId] = useState<string>("6500");

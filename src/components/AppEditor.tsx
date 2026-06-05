@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useEditor } from "../store";
+import { SYSTEMS } from "../engine/spec";
 import Toolbar from "./Toolbar";
 import Canvas from "./Canvas";
 import Sidebar from "./Sidebar";
@@ -29,8 +30,11 @@ export default function AppEditor() {
         case "m": case "v": ed.setMode("move"); break;
         case "o": ed.toggleOrientation(); break;
         case "f": window.dispatchEvent(new Event("hl-fit")); break;
-        case "1": ed.mode === "lines" ? ed.setLineSystem("line1176") : ed.setHexSystem("hex440"); break;
-        case "2": if (ed.mode !== "lines") ed.setHexSystem("hex565"); break;
+        case "1": case "2": case "3": case "4": case "5": {
+          const sys = SYSTEMS[+k - 1];
+          if (sys) (ed.mode === "lines" ? ed.setLineSystem : ed.setHexSystem)(sys.id);
+          break;
+        }
         case "c": if (e.shiftKey) ed.clear(); break;
       }
     };

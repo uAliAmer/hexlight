@@ -14,24 +14,20 @@ export interface SystemSpec {
   pricePerPowerSupply: number;
 }
 
-// Order matters: hex systems first, then T5 actual-length bars, line system last.
+// Standard T5 integrated LED battens — actual lengths (nominal cm as label,
+// measured incl. pins so ~5cm shorter than nominal).
 export const SYSTEMS: SystemSpec[] = [
-  { id: "hex440", label: "440mm", segmentLength: 440, barEndToConnectorCenterMm: 8.9, pricePerSegment: 29, pricePerConnector: 5, pricePerPowerSupply: 49 },
-  { id: "hex565", label: "565mm", segmentLength: 565, barEndToConnectorCenterMm: 8.9, pricePerSegment: 35, pricePerConnector: 6, pricePerPowerSupply: 59 },
-  // T5 integrated LED battens — actual lengths (nominal cm shown as label, measured incl. pins)
   { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 8.9, pricePerSegment: 15, pricePerConnector: 5, pricePerPowerSupply: 49 },
   { id: "t5_45", label: "45cm", segmentLength: 425, barEndToConnectorCenterMm: 8.9, pricePerSegment: 20, pricePerConnector: 5, pricePerPowerSupply: 49 },
   { id: "t5_60", label: "60cm", segmentLength: 548.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 25, pricePerConnector: 6, pricePerPowerSupply: 59 },
   { id: "t5_90", label: "90cm", segmentLength: 848.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 35, pricePerConnector: 7, pricePerPowerSupply: 69 },
   { id: "t5_120", label: "120cm", segmentLength: 1148.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 45, pricePerConnector: 8, pricePerPowerSupply: 79 },
-  { id: "line1176", label: "1176mm", segmentLength: 1176, barEndToConnectorCenterMm: 8.9, pricePerSegment: 59, pricePerConnector: 8, pricePerPowerSupply: 79 },
 ];
 
 export const SYSTEM_BY_ID = Object.fromEntries(SYSTEMS.map((s) => [s.id, s])) as Record<string, SystemSpec>;
 
 // Electrical — watts per bar by segment length (mm)
 export const WATTS_PER_BAR: Record<BarLength, number> = {
-  440: 6, 565: 8, 1176: 16,
   288.3: 5, 425: 7, 548.8: 10, 848.8: 14, 1148.8: 18,
 };
 export const LM_PER_W = 110; // luminous efficacy

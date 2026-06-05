@@ -68,7 +68,7 @@ function tpl(
     orientation,
     hexCount: cells.length,
     featured: opts?.featured,
-    build: (hex = "hex440", line = "line1176") => {
+    build: (hex = "t5_60", line = "t5_120") => {
       setOrientation(orientation); // border + previews need the right geometry
       const hexes = cellsToHexes(hex, cells);
       const lines = opts?.border != null ? borderFrame(hexes, opts.border, line) : {};
