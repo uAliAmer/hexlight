@@ -1,5 +1,5 @@
 import { Editor } from "../store";
-import { BAR_LENGTHS, BarLength, CONNECTOR_LABELS, USE_CASES } from "../engine/spec";
+import { CONNECTOR_LABELS, USE_CASES } from "../engine/spec";
 import { LuxResult, MountingMode } from "../engine/lux";
 import NumField from "./NumField";
 
@@ -110,9 +110,6 @@ function LuxReadout({ lx, ed }: { lx: LuxResult; ed: Editor }) {
     : lx.zone === "under" ? `أقل من الهدف لـ ${label} — استهدف ${range}.`
     : `أعلى من الهدف لـ ${label} (${range}) — أكثر سطوعاً من اللازم.`;
 
-  const c = ed.barConfig;
-  const setWatts = (len: BarLength, v: number) => ed.setBarConfig({ ...c, wattsPerBar: { ...c.wattsPerBar, [len]: v } });
-
   return (
     <div className={`lc ${lx.zone ?? ""}`}>
       <div className="lc-big"><span className="lc-tilde">~</span>{lx.luxEstimate}<span className="lc-unit">لكس</span></div>
@@ -126,27 +123,6 @@ function LuxReadout({ lx, ed }: { lx: LuxResult; ed: Editor }) {
 
       <p className="lc-msg">{msg}</p>
       {lx.autoDrop != null && <p className="lc-drop">مسافة تلقائية {lx.autoDrop.toFixed(2)} م</p>}
-
-      <details className="lc-adv">
-        <summary>متقدّم — مواصفات أضلع</summary>
-        <div className="lc-adv-body">
-          <div className="cfg-row">
-            <span>الفعالية الضوئية</span>
-            <div className="cfg-num"><NumField min={1} step={1} value={c.lmPerW} onChange={(v) => ed.setBarConfig({ ...c, lmPerW: v })} /><i>لومن/واط</i></div>
-          </div>
-          <div className="cfg-row">
-            <span>كفاءة المحوّل</span>
-            <div className="cfg-num"><NumField min={1} max={100} step={1} value={Math.round(c.driverEff * 100)} onChange={(v) => ed.setBarConfig({ ...c, driverEff: v / 100 })} /><i>%</i></div>
-          </div>
-          {BAR_LENGTHS.map((len) => (
-            <div className="cfg-row" key={len}>
-              <span>{len} مم</span>
-              <div className="cfg-num"><NumField min={0} step={0.5} value={c.wattsPerBar[len]} onChange={(v) => setWatts(len, v)} /><i>واط</i></div>
-              <span className="cfg-lm">→ {Math.round(c.wattsPerBar[len] * c.lmPerW)} لومن</span>
-            </div>
-          ))}
-        </div>
-      </details>
 
       <p className="lc-note">
         تقدير ±20٪. يعتمد على طريقة اللومن مع انعكاسات غرفة نموذجية وعامل صيانة 0.80.
