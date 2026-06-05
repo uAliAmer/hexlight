@@ -13,7 +13,7 @@ import {
   setOrientation,
 } from "./engine/geometry";
 import { BarConfig, CCT_BY_ID, defaultBarConfig, SYSTEM_BY_ID } from "./engine/spec";
-import { SharePayload, compactToDoc, docToCompact } from "./engine/share";
+import { ShareInput, ShareOutput } from "./engine/share";
 import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
 import { TEMPLATE_BY_ID } from "./engine/templates";
@@ -166,28 +166,19 @@ export function useEditor() {
   }, []);
 
   // --- share / restore ---
-  const buildSharePayload = useCallback((): SharePayload => {
-    const { h, l } = docToCompact(doc);
-    return {
-      v: 1, name: layoutName, orient: orientation, hex: hexSystem, line: lineSystem, cct: cctId,
-      h, l,
-      lux: { u: lux.useCaseId, w: lux.roomWidthM, d: lux.roomHeightM, c: lux.ceilingHeightM, m: lux.mountingMode, dr: lux.dropM },
-    };
-  }, [doc, layoutName, orientation, hexSystem, lineSystem, cctId, lux]);
+  const buildSharePayload = useCallback((): ShareInput => ({
+    name: layoutName, orient: orientation, hex: hexSystem, line: lineSystem, cct: cctId, doc, lux,
+  }), [doc, layoutName, orientation, hexSystem, lineSystem, cctId, lux]);
 
-  const applyShared = useCallback((p: SharePayload) => {
+  const applyShared = useCallback((p: ShareOutput) => {
     setOrientation(p.orient);
     setOrient(p.orient);
     setHexSystem(p.hex);
     setLineSystem(p.line);
     setCctId(p.cct);
     if (p.name) setLayoutName(p.name);
-    setLux((cur) => ({
-      ...cur,
-      useCaseId: p.lux.u, roomWidthM: p.lux.w, roomHeightM: p.lux.d,
-      ceilingHeightM: p.lux.c, mountingMode: p.lux.m, dropM: p.lux.dr,
-    }));
-    dispatch({ t: "set", doc: compactToDoc(p.h, p.l) });
+    setLux((cur) => ({ ...cur, ...p.lux }));
+    dispatch({ t: "set", doc: p.doc });
   }, []);
 
   const loadTemplate = useCallback((id: string) => {
