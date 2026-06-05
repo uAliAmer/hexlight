@@ -221,12 +221,21 @@ export function proposeLine(doc: Doc, systemId: string, x: number, y: number): L
   if (Math.hypot(dx, dy) < 1e-6) { dx = 1; dy = 0; }
   const step = Math.PI / 4;
   const ang = Math.round(Math.atan2(dy, dx) / step) * step;
-  let bx = Math.round((ax + Math.cos(ang) * L) * 10) / 10;
-  let by = Math.round((ay + Math.sin(ang) * L) * 10) / 10;
+  const ux = Math.cos(ang), uy = Math.sin(ang); // intended (straight) direction
+  let bx = Math.round((ax + ux * L) * 10) / 10;
+  let by = Math.round((ay + uy * L) * 10) / 10;
+  // snap the far end to an existing node ONLY if it sits on the intended
+  // straight line — otherwise nearby hex vertices hijack the end and bend it.
+  let bestN: GNode | null = null, bestD = L * 0.42;
   for (const n of g.nodes.values()) {
     if (nk(n.x, n.y) === nk(ax, ay)) continue;
-    if (Math.hypot(bx - n.x, by - n.y) < L * 0.42) { bx = n.x; by = n.y; break; }
+    const d = Math.hypot(bx - n.x, by - n.y);
+    if (d >= bestD) continue;
+    const perp = Math.abs((n.x - ax) * uy - (n.y - ay) * ux); // offset from the ray
+    if (perp > L * 0.18) continue; // off-axis — would bend the line
+    bestD = d; bestN = n;
   }
+  if (bestN) { bx = bestN.x; by = bestN.y; }
 
   const seg: LineSeg = { id: lineId(ax, ay, bx, by), systemId, ax, ay, bx, by };
   const exists = !!doc.lines[seg.id];
