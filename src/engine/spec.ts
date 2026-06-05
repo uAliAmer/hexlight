@@ -90,6 +90,7 @@ export const USE_CASES: UseCase[] = [
   { id: "detailing", label: "تلميع / رشّ", targetLux: 750, workPlaneM: 0 },
   { id: "salon", label: "صالون / حلاقة (لكل كرسي)", targetLux: 500, workPlaneM: 0.85 },
   { id: "living", label: "غرفة معيشة / مطبخ", targetLux: 200, workPlaneM: 0.75 },
+  { id: "gaming", label: "صالة ألعاب (قيمنق سنتر)", targetLux: 300, workPlaneM: 0.75 },
 ];
 
 export const USE_CASE_BY_ID = Object.fromEntries(USE_CASES.map((u) => [u.id, u])) as Record<string, UseCase>;
