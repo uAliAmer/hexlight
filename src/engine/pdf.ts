@@ -95,7 +95,7 @@ export async function exportPdf(
     import("html2canvas"),
   ]);
 
-  const bom = computeBom(doc, config, cctId === "rgbic");
+  const bom = computeBom(doc, config, cctId === "rgbic", lux.mountingMode === "suspended");
   const lx = computeLux(doc, { ...lux, clusterExtentM }, config);
   const now = new Date().toLocaleString("ar-EG");
 

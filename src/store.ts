@@ -136,7 +136,7 @@ export function useEditor() {
     });
   }, []);
 
-  const bom = useMemo(() => computeBom(doc, barConfig, cctId === "rgbic"), [doc, orientation, barConfig, cctId]);
+  const bom = useMemo(() => computeBom(doc, barConfig, cctId === "rgbic", lux.mountingMode === "suspended"), [doc, orientation, barConfig, cctId, lux.mountingMode]);
 
   // cluster extent (m) for auto-drop, from bom-less quick bounds
   const clusterExtentM = useMemo(() => extentM(doc), [doc, orientation]);

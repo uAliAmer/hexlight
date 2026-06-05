@@ -10,6 +10,7 @@ import {
   ConnectorType,
   CONNECTOR_ORDER,
   defaultBarConfig,
+  HANGER_PRICE,
   MAX_WATTS_PER_RUN,
   POWER_PRICE,
   SYSTEM_BY_ID,
@@ -214,7 +215,7 @@ function spreadNodes(keys: string[], P: (k: string) => Point, n: number): string
   return chosen;
 }
 
-export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgbic = false): Bom {
+export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgbic = false, suspended = false): Bom {
   const g = buildGraph(doc);
 
   // bars by length / system
@@ -324,6 +325,7 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
   for (const s of segmentGroups) estimatedPrice += s.count * barPrice(s.systemId, rgbic);
   estimatedPrice += totalConnectors * CONNECTOR_PRICE;
   estimatedPrice += powerInputs * POWER_PRICE;
+  if (suspended) estimatedPrice += suspensionPoints * HANGER_PRICE;
 
   return {
     segmentGroups,

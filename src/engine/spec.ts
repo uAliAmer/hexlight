@@ -28,6 +28,7 @@ export const SYSTEM_BY_ID = Object.fromEntries(SYSTEMS.map((s) => [s.id, s])) as
 export const CURRENCY = "د.ع";
 export const CONNECTOR_PRICE = 1500;
 export const POWER_PRICE = 1500;
+export const HANGER_PRICE = 1500; // suspension cable, per unit
 const BAR_PRICE: { white: Record<string, number>; rgbic: Record<string, number> } = {
   white: { t5_30: 4500, t5_45: 3500, t5_60: 4000, t5_90: 4500, t5_120: 5500 },
   rgbic: { t5_30: 4500, t5_45: 5000, t5_60: 5500, t5_90: 6250, t5_120: 7500 },
