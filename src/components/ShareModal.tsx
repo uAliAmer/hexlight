@@ -33,13 +33,15 @@ export default function ShareModal({ ed, onClose }: { ed: Editor; onClose: () =>
       <div className="share-modal" onClick={(e) => e.stopPropagation()}>
         <h3>مشاركة التصميم</h3>
         <p className="share-hint">رابط يحوي التصميم كاملاً — بلا خادم. امسح الرمز أو انسخ الرابط.</p>
-        {qr && <div className="share-qr"><img src={qr} alt="QR" /></div>}
+        <div className="share-qr">
+          {qr ? <img src={qr} alt="QR" /> : <div className="qr-loading"><span className="spinner" /></div>}
+        </div>
         <div className="share-url">
           <input value={url} readOnly dir="ltr" onFocus={(e) => e.target.select()} />
           <button className="tbtn primary" onClick={copy}>{copied ? "✓ نُسخ" : "نسخ"}</button>
         </div>
         <div className="share-actions">
-          <a className="tbtn" href={qr} download="hexlight-qr.png">تنزيل الرمز</a>
+          <a className={`tbtn ${qr ? "" : "disabled"}`} href={qr || undefined} download="hexlight-qr.png" aria-disabled={!qr}>تنزيل الرمز</a>
           <button className="tbtn" onClick={onClose}>إغلاق</button>
         </div>
       </div>

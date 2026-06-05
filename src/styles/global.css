@@ -118,6 +118,9 @@ button { font-family: inherit; cursor: pointer; }
 .share-hint { font-size: 13px; color: var(--muted); margin: 0 0 16px; line-height: 1.5; }
 .share-qr { display: flex; justify-content: center; margin-bottom: 16px; }
 .share-qr img { width: 240px; height: 240px; border-radius: 10px; background: #fff; padding: 8px; }
+.qr-loading { width: 240px; height: 240px; border-radius: 10px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+.qr-loading .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--border-hi); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+.tbtn.disabled { opacity: 0.4; pointer-events: none; }
 .share-url { display: flex; gap: 8px; margin-bottom: 12px; }
 .share-url input { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); color: var(--text-hi); border-radius: 6px; padding: 8px 10px; font-size: 12px; font-family: inherit; }
 .share-url input:focus { outline: none; border-color: var(--accent); }
