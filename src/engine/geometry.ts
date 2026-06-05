@@ -118,34 +118,21 @@ export function snapLinePoint(systemId: string, x: number, y: number): [number, 
   return [Math.round(x / L) * L, Math.round(y / L) * L];
 }
 
-// Nearest axis-aligned unit edge of the line lattice to a point.
+// 8-direction line: anchor at the nearest lattice node, draw one bar in the
+// nearest 45° direction toward the cursor. Axis dirs stay on the square grid;
+// diagonals are unit-length (off-grid) so the bar is always exactly one length.
 export function nearestLineEdge(systemId: string, x: number, y: number): LineSeg {
   const L = SYSTEM_BY_ID[systemId].segmentLength;
-  const gx = x / L,
-    gy = y / L;
-  const cx = Math.round(gx),
-    cy = Math.round(gy);
-  // distance to horizontal edge (toward nearest .5 in x) vs vertical edge
-  const fx = gx - Math.floor(gx);
-  const fy = gy - Math.floor(gy);
-  // candidate horizontal edge on the row nearest to y
-  const horiz = Math.abs(fy - Math.round(fy)) < Math.abs(fx - Math.round(fx));
-  let ax: number, ay: number, bx: number, by: number;
-  if (horiz) {
-    const row = Math.round(gy);
-    const col = Math.floor(gx);
-    ax = col * L;
-    bx = (col + 1) * L;
-    ay = by = row * L;
-  } else {
-    const col = Math.round(gx);
-    const row = Math.floor(gy);
-    ay = row * L;
-    by = (row + 1) * L;
-    ax = bx = col * L;
-  }
-  void cx;
-  void cy;
+  const ax = Math.round(x / L) * L; // anchor node
+  const ay = Math.round(y / L) * L;
+  let dx = x - ax,
+    dy = y - ay;
+  if (Math.hypot(dx, dy) < 1e-6) { dx = 1; dy = 0; }
+  const step = Math.PI / 4;
+  const ang = Math.round(Math.atan2(dy, dx) / step) * step;
+  const r1 = (v: number) => Math.round(v * 10) / 10;
+  const bx = r1(ax + Math.cos(ang) * L);
+  const by = r1(ay + Math.sin(ang) * L);
   return { id: lineId(ax, ay, bx, by), systemId, ax, ay, bx, by };
 }
 
@@ -153,6 +140,148 @@ export const lineId = (ax: number, ay: number, bx: number, by: number) => {
   const [a, b] = [`${ax},${ay}`, `${bx},${by}`].sort();
   return `line:${a}:${b}`;
 };
+
+// --- 8-direction line placement with legality validation ---
+type Pt = [number, number];
+const NK = 2;
+const nk = (x: number, y: number) => `${Math.round(x * NK)}|${Math.round(y * NK)}`;
+
+function unitDirsAt(g: Graph, px: number, py: number): Pt[] {
+  const key = nk(px, py);
+  const out: Pt[] = [];
+  for (const e of g.edges.values()) {
+    if (!e.active) continue;
+    const a = g.nodes.get(e.from)!, b = g.nodes.get(e.to)!;
+    let ox: number, oy: number;
+    if (nk(a.x, a.y) === key) { ox = b.x - px; oy = b.y - py; }
+    else if (nk(b.x, b.y) === key) { ox = a.x - px; oy = a.y - py; }
+    else continue;
+    const m = Math.hypot(ox, oy) || 1;
+    out.push([ox / m, oy / m]);
+  }
+  return out;
+}
+
+const angBetween = (u: Pt, v: Pt) => {
+  const d = Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1]));
+  return (Math.acos(d) * 180) / Math.PI;
+};
+// valid junction angles: L=90, V/Y=120, I/T straight=180
+const angleOk = (a: number) => [90, 120, 180].some((s) => Math.abs(a - s) < 6);
+
+function properCross(p1: Pt, p2: Pt, p3: Pt, p4: Pt): boolean {
+  const o = (a: Pt, b: Pt, c: Pt) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+  const o1 = o(p1, p2, p3), o2 = o(p1, p2, p4), o3 = o(p3, p4, p1), o4 = o(p3, p4, p2);
+  return o1 !== o2 && o3 !== o4 && o1 !== 0 && o2 !== 0 && o3 !== 0 && o4 !== 0;
+}
+function collinearOverlap(p1: Pt, p2: Pt, p3: Pt, p4: Pt): boolean {
+  const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const distTo = (p: Pt) => Math.abs((dx) * (p[1] - p1[1]) - (dy) * (p[0] - p1[0])) / len;
+  if (distTo(p3) > 1 || distTo(p4) > 1) return false; // not collinear
+  const t = (p: Pt) => ((p[0] - p1[0]) * dx + (p[1] - p1[1]) * dy) / (len * len);
+  const lo = Math.max(0, Math.min(t(p3), t(p4)));
+  const hi = Math.min(1, Math.max(t(p3), t(p4)));
+  return hi - lo > 0.05; // shared length, not just a touch
+}
+
+export interface LineProposal {
+  seg: LineSeg;
+  legal: boolean;
+  exists: boolean;
+}
+
+// Anchor at the nearest lattice node OR an existing graph node; draw one bar in
+// the nearest 45° direction; snap the far end onto a nearby existing node so
+// diagonals chain. Returns whether the placement is legal.
+export function proposeLine(doc: Doc, systemId: string, x: number, y: number): LineProposal {
+  const L = SYSTEM_BY_ID[systemId].segmentLength;
+  const g = buildGraph(doc);
+
+  // anchor: prefer a real node near the cursor so bars connect to the structure;
+  // otherwise fall back to the square lattice for fresh placements.
+  let ax = Math.round(x / L) * L, ay = Math.round(y / L) * L;
+  let nbd = Infinity, nbx = 0, nby = 0;
+  for (const n of g.nodes.values()) {
+    const d = Math.hypot(x - n.x, y - n.y);
+    if (d < nbd) { nbd = d; nbx = n.x; nby = n.y; }
+  }
+  if (nbd < L * 0.55) { ax = nbx; ay = nby; }
+  let dx = x - ax, dy = y - ay;
+  if (Math.hypot(dx, dy) < 1e-6) { dx = 1; dy = 0; }
+  const step = Math.PI / 4;
+  const ang = Math.round(Math.atan2(dy, dx) / step) * step;
+  let bx = Math.round((ax + Math.cos(ang) * L) * 10) / 10;
+  let by = Math.round((ay + Math.sin(ang) * L) * 10) / 10;
+  for (const n of g.nodes.values()) {
+    if (nk(n.x, n.y) === nk(ax, ay)) continue;
+    if (Math.hypot(bx - n.x, by - n.y) < L * 0.42) { bx = n.x; by = n.y; break; }
+  }
+
+  const seg: LineSeg = { id: lineId(ax, ay, bx, by), systemId, ax, ay, bx, by };
+  const exists = !!doc.lines[seg.id];
+  if (exists) return { seg, legal: true, exists };
+  if (nk(ax, ay) === nk(bx, by)) return { seg, legal: false, exists };
+
+  const legal = validateLine(g, seg);
+  return { seg, legal, exists };
+}
+
+function pointSegDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1;
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+// id of the existing line nearest the point (within a per-bar tolerance), or null
+export function nearestLineHit(doc: Doc, x: number, y: number): string | null {
+  let best: string | null = null, bd = Infinity;
+  for (const l of Object.values(doc.lines)) {
+    const d = pointSegDist(x, y, l.ax, l.ay, l.bx, l.by);
+    const tol = SYSTEM_BY_ID[l.systemId].segmentLength * 0.22;
+    if (d < tol && d < bd) { bd = d; best = l.id; }
+  }
+  return best;
+}
+
+export type LineAction =
+  | { kind: "remove"; seg: LineSeg }
+  | { kind: "add"; seg: LineSeg }
+  | { kind: "blocked"; seg: LineSeg };
+
+// What a click/hover does in lines mode: remove the line under the cursor, else
+// add a legal new bar, else blocked.
+export function lineActionAt(doc: Doc, systemId: string, x: number, y: number): LineAction {
+  const hit = nearestLineHit(doc, x, y);
+  if (hit) return { kind: "remove", seg: doc.lines[hit] };
+  const p = proposeLine(doc, systemId, x, y);
+  if (p.exists) return { kind: "remove", seg: p.seg };
+  return { kind: p.legal ? "add" : "blocked", seg: p.seg };
+}
+
+function validateLine(g: Graph, seg: LineSeg): boolean {
+  const p1: Pt = [seg.ax, seg.ay], p2: Pt = [seg.bx, seg.by];
+  for (const e of g.edges.values()) {
+    if (!e.active) continue;
+    const a = g.nodes.get(e.from)!, b = g.nodes.get(e.to)!;
+    const q1: Pt = [a.x, a.y], q2: Pt = [b.x, b.y];
+    if (properCross(p1, p2, q1, q2)) return false;
+    if (collinearOverlap(p1, p2, q1, q2)) return false;
+  }
+  for (const [P, other] of [[p1, p2], [p2, p1]] as [Pt, Pt][]) {
+    const dirs = unitDirsAt(g, P[0], P[1]);
+    const nd: Pt = [other[0] - P[0], other[1] - P[1]];
+    const m = Math.hypot(nd[0], nd[1]) || 1;
+    const all: Pt[] = [...dirs, [nd[0] / m, nd[1] / m]];
+    if (all.length > 4) return false; // X (4-way) is the largest connector
+    for (let i = 0; i < all.length; i++)
+      for (let j = i + 1; j < all.length; j++)
+        if (!angleOk(angBetween(all[i], all[j]))) return false;
+  }
+  return true;
+}
 
 // --- build graph from doc ---
 export function buildGraph(doc: Doc): Graph {

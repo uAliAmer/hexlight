@@ -7,8 +7,8 @@ import {
   emptyDoc,
   hexCenter,
   hexId,
+  lineActionAt,
   lineId,
-  nearestLineEdge,
   pixelToHex,
   setOrientation,
 } from "./engine/geometry";
@@ -141,10 +141,11 @@ export function useEditor() {
         const [q, r] = pixelToHex(hexSystem, worldX, worldY);
         dispatch({ t: "toggleHex", systemId: hexSystem, q, r });
       } else {
-        dispatch({ t: "toggleLine", seg: nearestLineEdge(lineSystem, worldX, worldY) });
+        const a = lineActionAt(doc, lineSystem, worldX, worldY);
+        if (a.kind !== "blocked") dispatch({ t: "toggleLine", seg: a.seg });
       }
     },
-    [mode, hexSystem, lineSystem],
+    [mode, hexSystem, lineSystem, doc],
   );
 
   // Move the whole layout by a world-space delta (mm). Hex shifts snap to axial

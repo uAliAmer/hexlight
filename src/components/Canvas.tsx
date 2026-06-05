@@ -6,8 +6,10 @@ import {
   hexCenter,
   hexId,
   hexVertices,
+  lineActionAt,
+  nearestLineHit,
   pixelToHex,
-  nearestLineEdge,
+  proposeLine,
 } from "../engine/geometry";
 import { nodeInfos } from "../engine/bom";
 import { CCT_BY_ID, COLORS, SYSTEM_BY_ID } from "../engine/spec";
@@ -103,11 +105,17 @@ export default function Canvas({ ed }: P) {
     if (!p || !w) return;
     const { x, y } = toWorld(clientX, clientY);
     if (ed.mode === "lines") {
-      const seg = nearestLineEdge(ed.lineSystem, x, y);
-      if (p.visited.has(seg.id)) return;
-      p.visited.add(seg.id);
-      if (p.erase) delete w.lines[seg.id];
-      else w.lines[seg.id] = seg;
+      if (p.erase) {
+        const hit = nearestLineHit(w, x, y);
+        if (!hit || p.visited.has(hit)) return;
+        p.visited.add(hit);
+        delete w.lines[hit];
+      } else {
+        const prop = proposeLine(w, ed.lineSystem, x, y);
+        if (p.visited.has(prop.seg.id)) return;
+        p.visited.add(prop.seg.id);
+        if (prop.legal && !prop.exists) w.lines[prop.seg.id] = prop.seg;
+      }
     } else {
       const [q, r] = pixelToHex(ed.hexSystem, x, y);
       const id = hexId(ed.hexSystem, q, r);
@@ -202,12 +210,17 @@ export default function Canvas({ ed }: P) {
       const pts = v.map(([x, y]) => `${sx(x)},${sy(y)}`).join(" ");
       preview = <polygon points={pts} fill={COLORS.accentDim} stroke={COLORS.accent} strokeWidth={1.5} strokeDasharray="4 4" />;
     } else {
-      const seg = nearestLineEdge(ed.lineSystem, hover.x, hover.y);
+      const act = lineActionAt(paintDoc ?? ed.doc, ed.lineSystem, hover.x, hover.y);
+      const seg = act.seg;
+      const col = act.kind === "remove" ? COLORS.amber : act.kind === "add" ? COLORS.accent : COLORS.danger;
       preview = (
-        <line
-          x1={sx(seg.ax)} y1={sy(seg.ay)} x2={sx(seg.bx)} y2={sy(seg.by)}
-          stroke={COLORS.accent} strokeWidth={6} strokeDasharray="6 6" strokeLinecap="round" opacity={0.6}
-        />
+        <>
+          <line
+            x1={sx(seg.ax)} y1={sy(seg.ay)} x2={sx(seg.bx)} y2={sy(seg.by)}
+            stroke={col} strokeWidth={6} strokeDasharray="6 6" strokeLinecap="round" opacity={0.75}
+          />
+          <circle cx={sx(seg.ax)} cy={sy(seg.ay)} r={4} fill={col} />
+        </>
       );
     }
   }
