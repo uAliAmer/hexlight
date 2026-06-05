@@ -17,17 +17,29 @@ function layoutSvg(doc: Doc, cctId: string, powerPoints: Mk[], hangerPoints: Mk[
     minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
     maxX = Math.max(maxX, n.x); maxY = Math.max(maxY, n.y);
   }
-  const pad = Math.max(maxX - minX, maxY - minY) * 0.08 + 40;
+  // bar pitch (median edge length) — size everything off this so markers stay
+  // proportional to the bars regardless of how large the grid is.
+  const lens: number[] = [];
+  for (const e of g.edges.values()) {
+    const a = g.nodes.get(e.from)!, b = g.nodes.get(e.to)!;
+    lens.push(Math.hypot(b.x - a.x, b.y - a.y));
+  }
+  lens.sort((x, y) => x - y);
+  const pitch = lens.length ? lens[Math.floor(lens.length / 2)] : 500;
+
+  const pad = pitch * 0.7 + 20;
   const W = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
   const vb = `${minX - pad} ${minY - pad} ${W} ${H}`;
-  const sw = Math.max(W, H) * 0.012;
+  const sw = pitch * 0.06;            // bar thickness
+  const nodeR = sw * 1.2;
+  const mr = pitch * 0.15;            // marker icon radius
   const cct = CCT_BY_ID[cctId] ?? CCT_BY_ID["6500"];
-  const led = cct.rgbic ? "url(#pdf-rgbic)" : cct.color;
-  const glow = cct.rgbic ? "#7df0ff" : cct.color;
-  const period = Math.max(W, H) * 0.5; // rainbow repeat span in world units
+  // print-readable on a light panel: rainbow for RGBIC, dark ink otherwise
+  const led = cct.rgbic ? "url(#pdf-rgbic)" : "#26324a";
+  const AMBER = "#cf7a00", TEAL = "#0c8aa3";
   const rgbicDef = cct.rgbic
-    ? `<defs><linearGradient id="pdf-rgbic" x1="${minX}" y1="${minY}" x2="${minX + period}" y2="${minY}" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
-        <stop offset="0" stop-color="#ff4d4d"/><stop offset="0.17" stop-color="#ffb030"/><stop offset="0.34" stop-color="#ffe84d"/><stop offset="0.5" stop-color="#4dff7a"/><stop offset="0.67" stop-color="#4dd2ff"/><stop offset="0.84" stop-color="#7a6bff"/><stop offset="1" stop-color="#ff4dd2"/>
+    ? `<defs><linearGradient id="pdf-rgbic" x1="${minX}" y1="${minY}" x2="${minX + pitch * 6}" y2="${minY}" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+        <stop offset="0" stop-color="#ff4d4d"/><stop offset="0.17" stop-color="#ff9e1f"/><stop offset="0.34" stop-color="#e8c800"/><stop offset="0.5" stop-color="#26c455"/><stop offset="0.67" stop-color="#1aa6e0"/><stop offset="0.84" stop-color="#6a55e8"/><stop offset="1" stop-color="#e84dc0"/>
       </linearGradient></defs>`
     : "";
   const shorten = 8.9;
@@ -42,23 +54,21 @@ function layoutSvg(doc: Doc, cctId: string, powerPoints: Mk[], hangerPoints: Mk[
   }
   let nodes = "";
   for (const n of g.nodes.values()) {
-    nodes += `<circle cx="${n.x}" cy="${n.y}" r="${sw * 1.1}" fill="#3d87f5"/>`;
+    nodes += `<circle cx="${n.x}" cy="${n.y}" r="${nodeR}" fill="#3d6fb5"/>`;
   }
-  const mr = sw * 3.4; // marker radius
   let hangers = "";
   for (const p of hangerPoints) {
-    const off = mr * 2.2, ox = p.x + p.dx * off, oy = p.y + p.dy * off, h = mr * 1.9;
-    hangers += `<line x1="${p.x}" y1="${p.y}" x2="${ox}" y2="${oy}" stroke="#7df0ff" stroke-width="${sw * 0.7}"/><circle cx="${p.x}" cy="${p.y}" r="${sw}" fill="#7df0ff"/><line x1="${ox}" y1="${oy}" x2="${ox}" y2="${oy - h}" stroke="#7df0ff" stroke-width="${sw}" stroke-dasharray="${sw * 1.3} ${sw}"/><line x1="${ox - mr * 0.9}" y1="${oy - h}" x2="${ox + mr * 0.9}" y2="${oy - h}" stroke="#7df0ff" stroke-width="${sw * 1.3}" stroke-linecap="round"/><circle cx="${ox}" cy="${oy}" r="${mr * 0.45}" fill="#7df0ff"/>`;
+    const off = mr * 1.7, ox = p.x + p.dx * off, oy = p.y + p.dy * off, h = mr * 1.6;
+    hangers += `<line x1="${p.x}" y1="${p.y}" x2="${ox}" y2="${oy}" stroke="${TEAL}" stroke-width="${sw * 0.7}"/><circle cx="${p.x}" cy="${p.y}" r="${sw}" fill="${TEAL}"/><line x1="${ox}" y1="${oy}" x2="${ox}" y2="${oy - h}" stroke="${TEAL}" stroke-width="${sw * 0.9}" stroke-dasharray="${sw * 1.3} ${sw}"/><line x1="${ox - mr * 0.8}" y1="${oy - h}" x2="${ox + mr * 0.8}" y2="${oy - h}" stroke="${TEAL}" stroke-width="${sw * 1.2}" stroke-linecap="round"/><circle cx="${ox}" cy="${oy}" r="${mr * 0.42}" fill="${TEAL}"/>`;
   }
   let powers = "";
   for (const p of powerPoints) {
-    const off = mr * 1.7, ox = p.x + p.dx * off, oy = p.y + p.dy * off;
-    powers += `<line x1="${p.x}" y1="${p.y}" x2="${ox}" y2="${oy}" stroke="#FFB830" stroke-width="${sw * 0.8}"/><circle cx="${p.x}" cy="${p.y}" r="${sw}" fill="#FFB830"/><circle cx="${ox}" cy="${oy}" r="${mr + sw * 0.4}" fill="#FFB830"/><circle cx="${ox}" cy="${oy}" r="${mr}" fill="#0b0e14" stroke="#FFB830" stroke-width="${sw * 0.6}"/><text x="${ox}" y="${oy}" fill="#FFB830" font-size="${mr * 1.5}" text-anchor="middle" dominant-baseline="central">⚡</text>`;
+    const off = mr * 1.5, ox = p.x + p.dx * off, oy = p.y + p.dy * off;
+    powers += `<line x1="${p.x}" y1="${p.y}" x2="${ox}" y2="${oy}" stroke="${AMBER}" stroke-width="${sw * 0.8}"/><circle cx="${p.x}" cy="${p.y}" r="${sw}" fill="${AMBER}"/><circle cx="${ox}" cy="${oy}" r="${mr}" fill="#fff" stroke="${AMBER}" stroke-width="${sw * 0.9}"/><text x="${ox}" y="${oy}" fill="${AMBER}" font-size="${mr * 1.5}" text-anchor="middle" dominant-baseline="central">⚡</text>`;
   }
-  return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:340px;display:block">
+  return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:340px;display:block;background:#ffffff">
     ${rgbicDef}
-    <rect x="${minX - pad}" y="${minY - pad}" width="${W}" height="${H}" fill="#0b0e14"/>
-    <g style="filter:drop-shadow(0 0 ${sw * 1.4}px ${glow}aa)">${bars}</g>${nodes}${hangers}${powers}
+    ${bars}${nodes}${hangers}${powers}
   </svg>`;
 }
 
