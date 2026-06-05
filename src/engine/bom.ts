@@ -156,8 +156,13 @@ function gridAnchors(
   const uniq = (vals: number[]) => [...new Set(vals.map((v) => Math.round(v)))].sort((a, b) => a - b);
   const xsAll = uniq(pts.map((p) => p.x)), ysAll = uniq(pts.map((p) => p.y));
   const snapTo = (t: number, arr: number[]) => arr.reduce((b, v) => (Math.abs(v - t) < Math.abs(b - t) ? v : b), arr[0]);
-  const colX = [...new Set(Array.from({ length: cols }, (_, c) => snapTo(bb.minX + ((c + 0.5) / cols) * w, xsAll)))];
-  const rowY = [...new Set(Array.from({ length: rows }, (_, r) => snapTo(bb.minY + ((r + 0.5) / rows) * h, ysAll)))];
+  // endpoint-inclusive spacing: outermost anchors sit ~10% in from each edge
+  // (slight cantilever) so the perimeter is supported, rest spread evenly.
+  const INSET = 0.1;
+  const axis = (n: number, lo: number, span: number) =>
+    n <= 1 ? [lo + span / 2] : Array.from({ length: n }, (_, i) => lo + (INSET + (1 - 2 * INSET) * (i / (n - 1))) * span);
+  const colX = [...new Set(axis(cols, bb.minX, w).map((t) => snapTo(t, xsAll)))];
+  const rowY = [...new Set(axis(rows, bb.minY, h).map((t) => snapTo(t, ysAll)))];
   const used = new Set<string>();
   const out: string[] = [];
   for (const ry of rowY) {
