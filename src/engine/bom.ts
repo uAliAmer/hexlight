@@ -125,14 +125,38 @@ const PORT_UPGRADE: Partial<Record<ConnectorType, ConnectorType>> = {
 
 const SQRT3 = Math.sqrt(3);
 
-// n evenly-spaced anchor positions along one axis, inset 20% from the extremes
-// (web suspension protocol). One point if the extent is negligible or n<=1.
-function linInset(lo: number, hi: number, n: number, hexStep: number): number[] {
-  const span = hi - lo;
-  if (span < hexStep * 0.5 || n <= 1) return [(lo + hi) / 2];
-  const inLo = lo + 0.2 * span, inHi = hi - 0.2 * span;
-  const out: number[] = [];
-  for (let i = 0; i < n; i++) out.push(inLo + ((inHi - inLo) * i) / (n - 1));
+// Balanced anchor nodes: k-means partition of the actual nodes into n regions,
+// each anchored at the node nearest its centroid. Clusters tile the real shape
+// so the perimeter is covered (no empty-corner gaps), and load is balanced.
+function balancedAnchors(keys: string[], P: (k: string) => Point, n: number): string[] {
+  if (n >= keys.length) return [...keys];
+  const pts = keys.map(P);
+  let centers = spreadNodes(keys, P, n).map((k) => ({ ...P(k) })); // FPS seeds
+  const assign = new Array(keys.length).fill(0);
+  for (let it = 0; it < 10; it++) {
+    for (let i = 0; i < pts.length; i++) {
+      let bi = 0, bd = Infinity;
+      for (let c = 0; c < centers.length; c++) {
+        const d = (pts[i].x - centers[c].x) ** 2 + (pts[i].y - centers[c].y) ** 2;
+        if (d < bd) { bd = d; bi = c; }
+      }
+      assign[i] = bi;
+    }
+    const sx = new Array(n).fill(0), sy = new Array(n).fill(0), cnt = new Array(n).fill(0);
+    for (let i = 0; i < pts.length; i++) { sx[assign[i]] += pts[i].x; sy[assign[i]] += pts[i].y; cnt[assign[i]]++; }
+    centers = centers.map((c, k) => (cnt[k] ? { x: sx[k] / cnt[k], y: sy[k] / cnt[k] } : c));
+  }
+  const used = new Set<string>();
+  const out: string[] = [];
+  for (const c of centers) {
+    let best: string | null = null, bd = Infinity;
+    for (let i = 0; i < keys.length; i++) {
+      if (used.has(keys[i])) continue;
+      const d = (pts[i].x - c.x) ** 2 + (pts[i].y - c.y) ** 2;
+      if (d < bd) { bd = d; best = keys[i]; }
+    }
+    if (best != null) { used.add(best); out.push(best); }
+  }
   return out;
 }
 
@@ -232,30 +256,13 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
       pSum += Math.hypot(a.x - b.x, a.y - b.y); pN++;
     }
     const pitch = pN ? pSum / pN : 1;
-    const hexStep = SQRT3 * pitch;              // hex centre-to-centre
     const hexArea = (3 * SQRT3 / 2) * pitch * pitch;
     let mnX = Infinity, mnY = Infinity, mxX = -Infinity, mxY = -Infinity;
     for (const k of run.nodes) { const p = xy(k); mnX = Math.min(mnX, p.x); mnY = Math.min(mnY, p.y); mxX = Math.max(mxX, p.x); mxY = Math.max(mxY, p.y); }
-    const w = mxX - mnX, h = mxY - mnY;
-    const approxHexes = (Math.max(w, hexStep) * Math.max(h, hexStep)) / hexArea;
+    const approxHexes = ((mxX - mnX) * (mxY - mnY)) / hexArea;
+    // ~1 cable per 2.5 hexes (density); always >=2
     const targetN = Math.min(24, Math.max(2, Math.round(approxHexes / 2.5)));
-    // grid: density-driven count, raised if any span would exceed 3 hexes
-    const minCols = Math.max(1, Math.ceil((0.6 * w) / (3 * hexStep)) + 1);
-    const minRows = Math.max(1, Math.ceil((0.6 * h) / (3 * hexStep)) + 1);
-    const aspect = Math.max(w, hexStep) / Math.max(h, hexStep);
-    let cols = Math.max(minCols, Math.round(Math.sqrt(targetN * aspect)) || 1);
-    let rows = Math.max(minRows, Math.ceil(targetN / cols));
-    const xs = linInset(mnX, mxX, cols, hexStep), ys = linInset(mnY, mxY, rows, hexStep);
-    const used = new Set<string>();
-    for (const tx of xs) for (const ty of ys) {
-      let best: string | null = null, bd = Infinity;
-      for (const k of run.nodes) { const p = xy(k); const d = (p.x - tx) ** 2 + (p.y - ty) ** 2; if (d < bd) { bd = d; best = k; } }
-      if (best != null && Math.sqrt(bd) <= hexStep * 1.4 && !used.has(best)) { used.add(best); hangerPoints.push(xy(best)); }
-    }
-    if (used.size < 2 && run.nodes.length) { // fallback: two extremes
-      const ks = [...run.nodes].sort((a, b) => xy(a).x + xy(a).y - (xy(b).x + xy(b).y));
-      for (const k of [ks[0], ks[ks.length - 1]]) if (k && !used.has(k)) { used.add(k); hangerPoints.push(xy(k)); }
-    }
+    for (const k of balancedAnchors(run.nodes, xy, targetN)) hangerPoints.push(xy(k));
   }
   const suspensionPoints = hangerPoints.length;
 
