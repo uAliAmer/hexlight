@@ -147,6 +147,7 @@ export async function exportPdf(
         ["الهدف", `${lx.targetLux} لكس`],
         ["التقدير", luxLine],
       ])}
+      <div style="font-size:11px;color:#7a8aa0;font-style:italic;margin-top:8px">تقدير ±20٪ بطريقة اللومن (عامل صيانة 0.80) مقابل أهداف EN 12464-1. ليس بديلاً عن محاكاة ضوئية دقيقة.</div>
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;border-top:2px solid #0c0e13;padding-top:12px">
@@ -154,8 +155,7 @@ export async function exportPdf(
       <div style="font-size:20px;font-weight:700;color:#3d87f5">${bom.estimatedPrice.toLocaleString("en-US")} د.ع</div>
     </div>
 
-    <div id="pdf-foot" style="margin-top:20px;padding-top:12px;border-top:1px solid #e6eaf0;font-size:12px;color:#7a8aa0;display:flex;justify-content:space-between">
-      <span>تقدير ±20٪ بطريقة اللومن (عامل صيانة 0.80) مقابل أهداف EN 12464-1.</span>
+    <div id="pdf-foot" style="margin-top:20px;padding-top:12px;border-top:1px solid #e6eaf0;font-size:12px;color:#7a8aa0;display:flex;justify-content:flex-end">
       <span>تم الإنشاء عبر <span dir="ltr" style="color:#3d87f5;font-weight:600">147hex.pages.dev</span></span>
     </div>`;
 
