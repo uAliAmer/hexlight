@@ -55,8 +55,19 @@ export default function AppEditor() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // expose the floating toolbar's height so content below can clear it
+  const appRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const app = appRef.current;
+    const tb = app?.querySelector(".tb") as HTMLElement | null;
+    if (!app || !tb) return;
+    const ro = new ResizeObserver(() => app.style.setProperty("--tb-h", `${tb.offsetHeight}px`));
+    ro.observe(tb);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className="app">
+    <div className="app" ref={appRef}>
       <Toolbar
         ed={ed}
         onExport={() => { void exportPdf(ed.doc, ed.lux, 1, ed.barConfig, ed.layoutName, ed.cctId); }}
