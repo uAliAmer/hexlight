@@ -231,9 +231,18 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     const inputs = Math.max(1, Math.ceil(run.watts / MAX_WATTS_PER_RUN));
     powerInputs += inputs;
 
-    // cord attach points: spread across the run so feeds are balanced. A cord on
-    // a connector (not an open end) upgrades it by a port.
-    const cordNodes = spreadNodes(run.nodes, xy, inputs);
+    // cord attach points: a cord needs a free port, so only nodes that can host
+    // one are candidates — an open bar end (degree 1, already free) or a
+    // connector with room to add a port (degree <= 3 -> upgrades to Y/T/X). A
+    // saturated X (degree 4) has no free port and is excluded. Prefer the most
+    // accessible tier (ends, then 2-way, then 3-way), then spread across the run.
+    const ends = run.nodes.filter((k) => deg(k) === 1);
+    let pool = ends;
+    if (pool.length < inputs) pool = pool.concat(run.nodes.filter((k) => deg(k) === 2));
+    if (pool.length < inputs) pool = pool.concat(run.nodes.filter((k) => deg(k) === 3));
+    if (pool.length === 0) pool = run.nodes.filter((k) => deg(k) < 4);
+    if (pool.length === 0) pool = run.nodes; // pathological: fully saturated run
+    const cordNodes = spreadNodes(pool, xy, inputs);
     for (const k of cordNodes) {
       powerPoints.push(xy(k));
       const info = infos.get(k)!;
