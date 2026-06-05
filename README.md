@@ -40,6 +40,10 @@ npm run deploy   # deploy to Cloudflare Pages (needs wrangler + access)
 - Email: ualiamer@riseup.net
 - GitHub: https://github.com/uAliAmer
 
+## License
+
+GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See [LICENSE](LICENSE). If you run a modified version on a network server, you must offer its source to users.
+
 ## Note
 
 A browser-side estimation tool. Not a substitute for a full photometric simulation, and not affiliated with any LED brand.
