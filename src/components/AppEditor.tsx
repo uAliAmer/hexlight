@@ -40,7 +40,7 @@ export default function AppEditor() {
 
   return (
     <div className="app">
-      <Toolbar ed={ed} onExport={() => exportPdf(ed.doc, ed.lux, 1, ed.barConfig, ed.layoutName)} />
+      <Toolbar ed={ed} onExport={() => { void exportPdf(ed.doc, ed.lux, 1, ed.barConfig, ed.layoutName, ed.cctId); }} />
       <div className="workspace">
         <Canvas ed={ed} />
         <Sidebar ed={ed} />

@@ -12,18 +12,18 @@ export default function BarConfig({ ed, onClose }: { ed: Editor; onClose: () => 
     <>
       <div className="cfg-backdrop" onClick={onClose} />
       <div className="cfg-pop" onClick={(e) => e.stopPropagation()}>
-        <div className="cfg-head">Global</div>
+        <div className="cfg-head">عام</div>
 
         <div className="cfg-row">
-          <span>Efficacy</span>
+          <span>الفعالية الضوئية</span>
           <div className="cfg-num">
             <NumField min={1} step={1} value={c.lmPerW} onChange={(v) => set({ lmPerW: v })} />
-            <i>lm/W</i>
+            <i>لومن/واط</i>
           </div>
         </div>
 
         <div className="cfg-row">
-          <span>Driver eff.</span>
+          <span>كفاءة المحوّل</span>
           <div className="cfg-num">
             <NumField min={1} max={100} step={1} value={Math.round(c.driverEff * 100)}
               onChange={(v) => set({ driverEff: v / 100 })} />
@@ -31,19 +31,19 @@ export default function BarConfig({ ed, onClose }: { ed: Editor; onClose: () => 
           </div>
         </div>
 
-        <div className="cfg-head">Watts per bar</div>
+        <div className="cfg-head">واط لكل ضلع</div>
         {BAR_LENGTHS.map((len) => (
           <div className="cfg-row" key={len}>
-            <span>{len} mm</span>
+            <span>{len} مم</span>
             <div className="cfg-num">
               <NumField min={0} step={0.5} value={c.wattsPerBar[len]} onChange={(v) => setWatts(len, v)} />
-              <i>W</i>
+              <i>واط</i>
             </div>
-            <span className="cfg-lm">→ {Math.round(c.wattsPerBar[len] * c.lmPerW)} lm</span>
+            <span className="cfg-lm">→ {Math.round(c.wattsPerBar[len] * c.lmPerW)} لومن</span>
           </div>
         ))}
 
-        <button className="cfg-reset" onClick={() => ed.setBarConfig(defaultBarConfig())}>Reset defaults</button>
+        <button className="cfg-reset" onClick={() => ed.setBarConfig(defaultBarConfig())}>إعادة الافتراضي</button>
       </div>
     </>
   );

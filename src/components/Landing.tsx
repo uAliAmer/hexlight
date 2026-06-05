@@ -5,73 +5,74 @@ import { buildGraph, hexVertices } from "../engine/geometry";
 const APP = "#/app";
 
 const TEMPLATE_BLURB: Record<string, string> = {
-  h14: "~4×5 m · the most popular cluster size",
-  h8: "~3×5 m · a popular single-car garage starter",
-  h5: "Compact cluster — workbench or single station",
-  dual: "Two independent clusters — switch each zone",
-  h13border: "Honeycomb with a frame — premium studio finish",
-  h23: "~6×6 m · wall-to-wall for a two-car garage",
+  h14: "~4×5 م · أكثر الأحجام شيوعاً",
+  h8: "~3×5 م · بداية شائعة لكراج سيارة واحدة",
+  h5: "تجمّع مدمج — طاولة عمل أو محطة واحدة",
+  dual: "تجمّعان مستقلان — تحكّم بكل منطقة على حدة",
+  h13border: "خلية مع إطار — لمسة استوديو راقية",
+  h23: "~6×6 م · تغطية كاملة لكراج سيارتين",
 };
 
-const COMPONENTS: [string, string, string][] = [
-  ["Multiple bar lengths", "440 · 565 · 1176 mm", "Pick the bar length that fits your space. Short bars for tight clusters, long bars for spanning walls. Hexlight counts the exact quantity of each length you need."],
-  ["Many connector types", "I · L · V · Y · T · X", "Real hex systems use six connector shapes depending on the angle and number of bars meeting at a node. Hexlight determines which connector each junction needs and adds the exact count."],
-  ["Power & cables", "Sized automatically", "Hexlight calculates total power draw and how many inputs are required. Each cord feeds a limited chain — it splits your design optimally so you never overload a run."],
+const COMPONENTS: [string, string, string, string][] = [
+  ["أطوال أضلاع متعددة", "440 · 565 · 1176 مم", "اختر طول الضلع المناسب لمساحتك. أضلاع قصيرة للتجمعات الضيقة، وطويلة لتغطية الجدران. يحسب هكسلايت الكمية الدقيقة لكل طول تحتاجه.", "/bars.png"],
+  ["أنواع موصلات متعددة", "I · L · V · Y · T · X", "أنظمة السداسي الحقيقية تستخدم ستة أشكال موصلات حسب الزاوية وعدد أضلع عند العقدة. يحدّد هكسلايت الموصل المطلوب لكل وصلة ويضيف العدد الدقيق.", "/connectors.png"],
+  ["الطاقة والكابلات", "تُحسب تلقائياً", "يحسب هكسلايت إجمالي سحب الطاقة وعدد المداخل المطلوبة. كل كابل يغذّي سلسلة محدودة — ويقسم تصميمك بأمثلية كي لا تتجاوز الحد أبداً.", "/powercord.png"],
 ];
 
 const LIGHT_FEATURES: [string, string][] = [
-  ["Live lux estimate", "Updates every time you add or remove a hex. Rounded to the nearest 10 lux, with a ±20% advisory label."],
-  ["Use-case targets built in", "Garage 300 · Workshop 500 · Detailing 750 · Gym 400 · Salon 500 · Living 200 lx. Based on EN 12464-1."],
-  ["Ceiling height & mounting", "Flush, suspended, or auto-calculated drop for optimal spread across your layout."],
+  ["تقدير لكس حيّ", "يتحدّث في كل مرة تضيف أو تزيل خلية. مقرّب لأقرب 10 لكس مع إشارة ±20٪."],
+  ["أهداف جاهزة لكل استخدام", "كراج 300 · ورشة 500 · تلميع 750 · صالة 400 · صالون 500 · معيشة 200 لكس. وفق EN 12464-1."],
+  ["ارتفاع السقف والتركيب", "سطحي، معلّق، أو مسافة محسوبة تلقائياً لأفضل انتشار عبر تصميمك."],
 ];
 
 const USE_CASE_CARDS: [string, string, string][] = [
-  ["Garages & workshops", "Single-car, two-car, mancaves, hobbyist benches. Even, shadow-free coverage at 300–500 lx.", "Single-car · Two-car · Workbench"],
-  ["Barber shops & salons", "Hex clusters above each chair give bright, colour-accurate light clients photograph. 500 lx per chair.", "Per-chair · Reception · Backbar"],
-  ["Detailing & auto studios", "Paint, ceramic and finishing work needs even light with no hot spots. 750 lx for colour-accurate finishing.", "Detail bay · Paint booth · Showroom"],
-  ["Home gyms & studios", "A hex cluster over the rack looks great in workout videos. 400 lx floor target — most use 5–8 hexes.", "Squat rack · Yoga · Reels"],
-  ["Streamer & content rooms", "Wall-mounted hex frames behind the desk read well on stream. Lines mode draws custom shapes.", "Stream wall · Backdrop · Office"],
-  ["Living rooms & features", "Statement ceilings over an island, dining table or hallway. 200 lx residential ambient.", "Kitchen · Hallway · Feature wall"],
+  ["كراجات وورش", "سيارة واحدة، سيارتان، أماكن الهوايات، طاولات العمل. تغطية متساوية بلا ظلال عند 300–500 لكس.", "سيارة · سيارتان · طاولة عمل"],
+  ["محلات حلاقة وصالونات", "تجمّعات سداسية فوق كل كرسي تمنح إضاءة ساطعة دقيقة الألوان يصوّرها الزبائن. 500 لكس لكل كرسي.", "لكل كرسي · استقبال · رفوف"],
+  ["تلميع واستوديوهات سيارات", "أعمال الطلاء والسيراميك والتشطيب تحتاج إضاءة متساوية بلا بقع. 750 لكس لتشطيب دقيق الألوان.", "قسم تلميع · غرفة طلاء · معرض"],
+  ["صالات منزلية واستوديوهات", "تجمّع سداسي فوق الجهاز يبدو رائعاً في فيديوهات التمرين. هدف 400 لكس — أغلبها 5–8 خلايا.", "حامل أثقال · يوغا · مقاطع"],
+  ["غرف البث والمحتوى", "إطارات سداسية على الجدار خلف المكتب تظهر جيداً في البث. وضع الخطوط يرسم أشكالاً مخصصة.", "جدار بث · خلفية · مكتب"],
+  ["غرف معيشة ولمسات منزلية", "أسقف مميزة فوق جزيرة المطبخ أو طاولة الطعام أو الممر. 200 لكس إضاءة منزلية محيطة.", "مطبخ · ممر · جدار مميز"],
 ];
 
 const FAQ: [string, string][] = [
-  ["How do I plan a hexagon LED lighting system?", "Open Hexlight in any browser — no install or account. Click to place hexagonal panels on the grid, choose your bar length (440, 565 or 1176 mm), and the tool determines every connector type and builds a complete bill of materials with quantities."],
-  ["How many connectors do I need?", "It depends on layout geometry. Hex systems use six connector types: I (straight-through), L (right-angle), V (angled two-way), Y (three-way branch), T (power tap), and X (four-way cross). Hexlight detects each junction automatically and adds the exact count."],
-  ["440 mm vs 565 mm vs 1176 mm?", "These are bar segment lengths. 440 mm makes smaller hexagons — good for compact clusters. 565 mm creates larger hexagons with more coverage. 1176 mm is used for straight line runs spanning larger distances. Hexlight supports all three and mixes them in one layout."],
-  ["How many power inputs do I need?", "Each connected run of bars needs at least one power input. A single input supplies up to 420 W — a run exceeding that requires a second, and so on. Hexlight calculates the recommended inputs per connected island automatically."],
-  ["How much power does a hex system consume?", "What matters is wall (AC) draw. Typical per segment: 6 W LED-side for 440 mm, 8 W for 565 mm, 16 W for 1176 mm, at ≈110 lm/W and ≈86% driver efficiency. Hexlight computes total wall consumption live as you design — and the Bar configuration panel lets you tune every figure."],
-  ["How does Hexlight estimate brightness?", "The lumen method (same basis as EN 12464-1): total lumens × Coefficient of Utilisation (from room geometry & ceiling height) × 0.80 maintenance factor ÷ floor area. The result is a ±20% estimate — not a photometric simulation, but accurate enough to confirm a layout is in the right ballpark before ordering."],
-  ["Can I export my design as a PDF?", "Yes. Use Export PDF for a print-ready document with the full bill of materials — segments by length, each connector type, power supply count and total wattage. Useful for placing a supplier order or sharing with an installer."],
-  ["Does Hexlight cost anything?", "No. It runs entirely in your browser with no account, no download, and no payment required at any point."],
+  ["كيف أخطّط نظام إضاءة LED سداسي؟", "افتح هكسلايت في أي متصفح — بلا تثبيت أو حساب. انقر لوضع الألواح السداسية على الشبكة، اختر طول الضلع (440 أو 565 أو 1176 مم)، وتحدّد الأداة كل نوع موصل وتبني قائمة مواد كاملة بالكميات."],
+  ["كم موصلاً أحتاج؟", "يعتمد على هندسة التصميم. تستخدم الأنظمة السداسية ستة أنواع موصلات: I (مستقيم)، L (زاوية قائمة)، V (اتجاهين بزاوية)، Y (تفرّع ثلاثي)، T (مأخذ طاقة)، X (تقاطع رباعي). يكشف هكسلايت كل وصلة تلقائياً ويضيف العدد الدقيق."],
+  ["440 مم مقابل 565 مم مقابل 1176 مم؟", "هذه أطوال أضلع. 440 مم يصنع أشكالاً سداسية أصغر — مناسبة للتجمعات المدمجة. 565 مم يصنع أشكالاً أكبر بتغطية أوسع. 1176 مم للخطوط المستقيمة الطويلة. يدعم هكسلايت الثلاثة ويمزجها في تصميم واحد."],
+  ["كم مدخل طاقة أحتاج؟", "كل سلسلة أضلاع متصلة تحتاج مدخل طاقة واحداً على الأقل. المدخل الواحد يوفّر حتى 420 واط — والسلسلة التي تتجاوز ذلك تحتاج مدخلاً ثانياً وهكذا. يحسب هكسلايت العدد الموصى به لكل جزيرة متصلة تلقائياً."],
+  ["كم يستهلك النظام السداسي من الطاقة؟", "المهم هو سحب الكهرباء من الجدار. نموذجياً لكل ضلع: 6 واط جهة LED لـ 440 مم، 8 واط لـ 565 مم، 16 واط لـ 1176 مم، عند ≈110 لومن/واط وكفاءة محوّل ≈86٪. يحسب هكسلايت الاستهلاك الكلي حيّاً — ولوحة إعدادات أضلع تتيح ضبط كل قيمة."],
+  ["كيف يقدّر هكسلايت السطوع؟", "طريقة اللومن (نفس أساس EN 12464-1): إجمالي اللومن × معامل الاستخدام (من هندسة الغرفة وارتفاع السقف) × عامل صيانة 0.80 ÷ مساحة الأرضية. النتيجة تقدير ±20٪ — ليست محاكاة دقيقة لكنها كافية للتأكد قبل الطلب."],
+  ["هل يمكنني تصدير التصميم كـ PDF؟", "نعم. استخدم تصدير PDF لمستند جاهز للطباعة يحوي قائمة المواد الكاملة — أضلع حسب الطول، كل نوع موصل، عدد مصادر الطاقة، وإجمالي الواط. مفيد لطلب المورّد أو مشاركته مع الفنّي."],
+  ["هل هكسلايت مجاني؟", "نعم، يعمل بالكامل في متصفحك بلا حساب أو تنزيل أو دفع في أي مرحلة."],
 ];
 
 export default function Landing() {
   return (
     <div className="landing">
       <nav className="lnav">
-        <a className="brand" href="#/"><HexMark /> <span>HEXLIGHT</span></a>
+        <a className="brand" href="#/"><HexMark /> <span>هكسلايت</span></a>
         <div className="lnav-right">
-          <a href="#how">How it works</a>
-          <a href="#faq">FAQ</a>
-          <a className="cta-sm" href={APP}>Open app →</a>
+          <a href="#how">كيف يعمل</a>
+          <a href="#faq">الأسئلة</a>
+          <a className="nav-contact" href="#contact"><MailIcon /> تواصل معنا</a>
+          <a className="cta-sm" href={APP}>افتح التطبيق ←</a>
         </div>
       </nav>
 
       <header className="hero">
         <HeroHexGrid />
         <div className="hero-text">
-          <span className="kicker">Hexagonal LED layout planner</span>
-          <h1>Hex lights, planned for <em>your space</em>.</h1>
+          <span className="kicker">مخطّط إضاءة LED السداسية</span>
+          <h1>إضاءة سداسية، مخطّطة <em>لمساحتك</em>.</h1>
           <p>
-            Hexlight is a browser tool for designing hexagonal LED lighting systems. Place hexes on a grid,
-            verify floor-level illuminance against EN&nbsp;12464-1 targets, and get a complete bill of materials —
-            bars, connectors and power inputs — all calculated live.
+            هكسلايت أداة متصفح لتصميم أنظمة إضاءة LED السداسية. ضع الأشكال على شبكة،
+            تحقّق من شدّة الإضاءة على الأرض مقابل أهداف EN&nbsp;12464-1، واحصل على قائمة مواد كاملة —
+            أضلاع وموصلات ومداخل طاقة — كلها محسوبة حيّاً.
           </p>
           <div className="hero-cta">
-            <a className="cta" href={APP}>Plan my layout →</a>
-            <a className="cta ghost" href="#templates">See example layouts</a>
+            <a className="cta" href={APP}>خطّط تصميمي ←</a>
+            <a className="cta ghost" href="#templates">شاهد أمثلة جاهزة</a>
           </div>
-          <div className="hero-trust">NO ACCOUNT · NO DOWNLOAD · NO COST</div>
+          <div className="hero-trust">بلا حساب · بلا تنزيل · بلا تكلفة</div>
         </div>
         <div className="hero-art">
           <div className="hero-art-glow" />
@@ -81,12 +82,12 @@ export default function Landing() {
 
       {/* How it works */}
       <section className="sec" id="how">
-        <h2 className="sec-h">From idea to install-ready design in minutes</h2>
+        <h2 className="sec-h">من الفكرة إلى تصميم جاهز للتركيب في دقائق</h2>
         <div className="steps">
           {[
-            ["01", "Open the app", "Runs entirely in your browser — no install, no account. Open and go."],
-            ["02", "Plan your layout", "Build your pattern on the grid — hex panels and line segments snap into place. Connectors and bar counts update live."],
-            ["03", "Verify your design", "Check the brightness estimate against your use-case target, review the bill of materials, then order knowing you have the right parts."],
+            ["01", "افتح التطبيق", "يعمل بالكامل في متصفحك — بلا تثبيت أو حساب. افتح وابدأ."],
+            ["02", "خطّط تصميمك", "ابنِ نمطك على الشبكة — تلتصق الألواح السداسية والخطوط في مكانها. تتحدّث الموصلات وأعداد أضلع حيّاً."],
+            ["03", "تحقّق من التصميم", "قارن تقدير السطوع بهدف استخدامك، راجع قائمة المواد، ثم اطلب وأنت واثق من القطع الصحيحة."],
           ].map(([n, t, d]) => (
             <div className="step" key={n}>
               <span className="step-n">{n}</span>
@@ -99,30 +100,31 @@ export default function Landing() {
 
       {/* Templates */}
       <section className="sec" id="templates">
-        <h2 className="sec-h">Start from a proven layout</h2>
+        <h2 className="sec-h">ابدأ من تصميم مُجرّب</h2>
         <div className="tgallery">
           {TEMPLATES.map((t) => (
             <a className={`tg-card ${t.featured ? "tg-feat" : ""}`} key={t.id} href={APP}>
-              {t.featured && <span className="tg-badge">MOST-BUILT LAYOUT</span>}
+              {t.featured && <span className="tg-badge">الأكثر بناءً</span>}
               <div className="tg-prev"><TemplatePreview docId={t.id} big={t.featured} /></div>
               <div className="tg-meta">
-                <span className="tg-kicker">{t.name.toUpperCase()}</span>
+                <span className="tg-kicker">{t.name}</span>
                 <span className="tg-name">{t.name}</span>
                 <span className="tg-blurb">{TEMPLATE_BLURB[t.id]}</span>
               </div>
             </a>
           ))}
         </div>
-        <p className="sec-foot">Different shape in mind? <a href={APP}>Start blank — open the planner →</a></p>
+        <p className="sec-foot">شكل مختلف في بالك؟ <a href={APP}>ابدأ من فارغ — افتح المخطّط ←</a></p>
       </section>
 
       {/* Components */}
       <section className="sec">
-        <h2 className="sec-h">Every part your system needs, counted automatically</h2>
-        <p className="sec-sub">A hex lighting system is built from bars, connectors and power inputs. Hexlight tracks all three as you design — no spreadsheet, no guesswork.</p>
+        <h2 className="sec-h">كل قطعة يحتاجها نظامك، محسوبة تلقائياً</h2>
+        <p className="sec-sub">يُبنى نظام الإضاءة السداسي من أضلاع وموصلات ومداخل طاقة. يتتبّع هكسلايت الثلاثة أثناء التصميم — بلا جداول، بلا تخمين.</p>
         <div className="cards3">
-          {COMPONENTS.map(([t, big, d]) => (
+          {COMPONENTS.map(([t, big, d, img]) => (
             <div className="card" key={t}>
+              <div className="card-img"><img src={img} alt={t} loading="lazy" /></div>
               <div className="card-tag">{t}</div>
               <div className="card-big">{big}</div>
               <p>{d}</p>
@@ -134,28 +136,28 @@ export default function Landing() {
       {/* BOM */}
       <section className="sec split">
         <div className="split-text">
-          <h2 className="sec-h">Your shopping list, generated automatically</h2>
-          <p>Every time you add or remove a hex, Hexlight recalculates the full parts list in real time — segments by length, connectors by type, and power supply count.</p>
-          <p>When you're ready, export the design as a PDF — layout diagram, parts list, installation size and total wattage on one page. Hand it to your supplier or save it for the installer.</p>
+          <h2 className="sec-h">قائمة مشترياتك، تُولّد تلقائياً</h2>
+          <p>في كل مرة تضيف أو تزيل خلية، يعيد هكسلايت حساب قائمة القطع الكاملة فوراً — أضلع حسب الطول، الموصلات حسب النوع، وعدد مصادر الطاقة.</p>
+          <p>عندما تجهز، صدّر التصميم كـ PDF — مخطط التصميم وقائمة القطع وحجم التركيب وإجمالي الواط في صفحة واحدة. سلّمه للمورّد أو احفظه للفنّي.</p>
         </div>
         <div className="bom-card">
-          <div className="bom-card-title">Layout summary</div>
-          <BomRow sub="Segments" />
-          <BomRow label="Hex 440 mm" val="× 42" />
-          <BomRow label="Hex 565 mm" val="× 12" />
-          <BomRow sub="Connectors" />
-          <BomRow label="Y connector" val="× 6" />
-          <BomRow label="I connector" val="× 3" />
-          <BomRow label="V connector" val="× 9" />
-          <BomRow sub="Power" />
-          <BomRow label="Power supply" val="× 1" accent />
+          <div className="bom-card-title">ملخّص التصميم</div>
+          <BomRow sub="أضلع" />
+          <BomRow label="سداسي 440 مم" val="× 42" />
+          <BomRow label="سداسي 565 مم" val="× 12" />
+          <BomRow sub="الموصلات" />
+          <BomRow label="موصل Y" val="× 6" />
+          <BomRow label="موصل I" val="× 3" />
+          <BomRow label="موصل V" val="× 9" />
+          <BomRow sub="الطاقة" />
+          <BomRow label="مصدر طاقة" val="× 1" accent />
         </div>
       </section>
 
       {/* Light check */}
       <section className="sec">
-        <h2 className="sec-h">Will your layout be bright enough?</h2>
-        <p className="sec-sub">Hexlight estimates floor-level illuminance using the lumen method — the same approach lighting engineers use. Pick your use case, confirm ceiling height, and the Light Check panel shows a live lux reading against a standard target range.</p>
+        <h2 className="sec-h">هل سيكون تصميمك ساطعاً بما يكفي؟</h2>
+        <p className="sec-sub">يقدّر هكسلايت شدّة الإضاءة على الأرض بطريقة اللومن — نفس أسلوب مهندسي الإضاءة. اختر استخدامك، أكّد ارتفاع السقف، وتعرض لوحة فحص الإضاءة قراءة لكس حيّة مقابل نطاق هدف قياسي.</p>
         <div className="cards3">
           {LIGHT_FEATURES.map(([t, d]) => (
             <div className="card" key={t}>
@@ -168,8 +170,8 @@ export default function Landing() {
 
       {/* Use cases */}
       <section className="sec">
-        <h2 className="sec-h">Where people install hex lights</h2>
-        <p className="sec-sub">One planner, every kind of space.</p>
+        <h2 className="sec-h">أين يركّب الناس الإضاءة السداسية</h2>
+        <p className="sec-sub">مخطّط واحد، لكل أنواع المساحات.</p>
         <div className="usecases">
           {USE_CASE_CARDS.map(([t, d, tags]) => (
             <div className="uc-card" key={t}>
@@ -184,19 +186,19 @@ export default function Landing() {
       {/* Specs strip */}
       <section className="sec specs-sec">
         <div className="spec-col">
-          <h3>Bar segments</h3>
+          <h3>أضلاع الإضاءة</h3>
           <table>
-            <thead><tr><th>Length</th><th>Watts</th><th>Lumens</th></tr></thead>
+            <thead><tr><th>الطول</th><th>واط</th><th>لومن</th></tr></thead>
             <tbody>
               {SYSTEMS.map((s) => {
                 const w = { 440: 6, 565: 8, 1176: 16 }[s.segmentLength];
-                return <tr key={s.id}><td>{s.segmentLength} mm</td><td>{w} W</td><td>{w * 110} lm</td></tr>;
+                return <tr key={s.id}><td>{s.segmentLength} مم</td><td>{w} واط</td><td>{w * 110} لومن</td></tr>;
               })}
             </tbody>
           </table>
         </div>
         <div className="spec-col">
-          <h3>Connectors</h3>
+          <h3>الموصلات</h3>
           <ul className="conn-list">
             {(Object.keys(CONNECTOR_LABELS) as ConnectorType[]).map((k) => (
               <li key={k}><b>{k.toUpperCase()}</b> {CONNECTOR_LABELS[k].replace(/^[A-Z]+ — /, "")}</li>
@@ -204,16 +206,16 @@ export default function Landing() {
           </ul>
         </div>
         <div className="spec-col">
-          <h3>Lux targets · EN 12464-1</h3>
+          <h3>أهداف اللكس · EN 12464-1</h3>
           <table>
-            <tbody>{USE_CASES.map((u) => <tr key={u.id}><td>{u.label}</td><td>{u.targetLux} lx</td></tr>)}</tbody>
+            <tbody>{USE_CASES.map((u) => <tr key={u.id}><td>{u.label}</td><td>{u.targetLux} لكس</td></tr>)}</tbody>
           </table>
         </div>
       </section>
 
       {/* FAQ */}
       <section className="sec faq" id="faq">
-        <h2 className="sec-h">Hexagon LED lighting questions</h2>
+        <h2 className="sec-h">أسئلة عن إضاءة LED السداسية</h2>
         {FAQ.map(([q, a]) => (
           <details key={q}><summary>{q}</summary><p>{a}</p></details>
         ))}
@@ -221,22 +223,32 @@ export default function Landing() {
 
       {/* Final CTA */}
       <section className="final-cta">
-        <h2>Design it. Verify it. Order it right.</h2>
-        <p>Whether it's a garage, salon, studio or living room — free, instant, runs in your browser.</p>
+        <h2>صمّمها. تحقّق منها. اطلبها بشكل صحيح.</h2>
+        <p>سواء كان كراجاً أو صالوناً أو استوديو أو غرفة معيشة — مجاني، فوري، يعمل في متصفحك.</p>
         <div className="hero-cta center">
-          <a className="cta" href={APP}>Plan my layout →</a>
-          <a className="cta ghost" href="#templates">Browse layouts</a>
+          <a className="cta" href={APP}>خطّط تصميمي ←</a>
+          <a className="cta ghost" href="#templates">تصفّح التصاميم</a>
         </div>
-        <div className="hero-trust">NO ACCOUNT · NO DOWNLOAD · NO COST</div>
+        <div className="hero-trust">بلا حساب · بلا تنزيل · بلا تكلفة</div>
+      </section>
+
+      {/* Contact */}
+      <section className="contact-sec" id="contact">
+        <h2 className="sec-h">تواصل مع المطوّر</h2>
+        <p className="sec-sub">أسئلة، اقتراحات، أو تعاون؟ راسلني مباشرة.</p>
+        <div className="contact-btns">
+          <a className="contact-btn" href="mailto:ualiamer@riseup.net"><MailIcon /> راسلني عبر البريد</a>
+          <a className="contact-btn ghost" href="https://github.com/uAliAmer" target="_blank" rel="noreferrer"><GithubIcon /> GitHub</a>
+        </div>
       </section>
 
       <footer className="lfooter">
         <div className="lf-cols">
-          <div><h5>Product</h5><a href={APP}>Open app</a><a href="#how">How it works</a><a href="#faq">FAQ</a></div>
-          <div><h5>Templates</h5>{TEMPLATES.map((t) => <a key={t.id} href={APP}>{t.name}</a>)}</div>
-          <div><h5>About</h5><span>Client-side estimate</span><span>±20% lumen method</span><span>Not affiliated with any LED brand</span></div>
+          <div><h5>المنتج</h5><a href={APP}>افتح التطبيق</a><a href="#how">كيف يعمل</a><a href="#faq">الأسئلة الشائعة</a></div>
+          <div><h5>القوالب</h5>{TEMPLATES.map((t) => <a key={t.id} href={APP}>{t.name}</a>)}</div>
+          <div><h5>حول</h5><span>تقدير داخل المتصفح</span><span>طريقة اللومن ±20٪</span><span>غير مرتبط بأي علامة LED</span></div>
         </div>
-        <div className="lf-base">© 2026 Hexlight · Hex lights, planned for your space.</div>
+        <div className="lf-base">© 2026 هكسلايت · إضاءة سداسية، مخطّطة لمساحتك.</div>
       </footer>
     </div>
   );
@@ -252,6 +264,23 @@ function HexMark() {
     <svg width="22" height="22" viewBox="0 0 32 32">
       <polygon points="16,3 27,9.5 27,22.5 16,29 5,22.5 5,9.5" fill="none" stroke={COLORS.accent} strokeWidth="2.5" strokeLinejoin="round" />
       <circle cx="16" cy="16" r="3" fill={COLORS.amber} />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4 7l8 6 8-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function GithubIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.36 9.36 0 0 1 12 6.84c.85 0 1.71.12 2.51.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
     </svg>
   );
 }

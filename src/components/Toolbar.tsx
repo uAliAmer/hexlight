@@ -34,8 +34,8 @@ export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => 
 
   const roomLabel =
     ed.units === "cm"
-      ? `${Math.round(ed.lux.roomWidthM * 100)} × ${Math.round(ed.lux.roomHeightM * 100)} cm`
-      : `${ed.lux.roomWidthM} × ${ed.lux.roomHeightM} m`;
+      ? `${Math.round(ed.lux.roomWidthM * 100)} × ${Math.round(ed.lux.roomHeightM * 100)} سم`
+      : `${ed.lux.roomWidthM} × ${ed.lux.roomHeightM} م`;
 
   return (
     <div className="tb">
@@ -46,31 +46,31 @@ export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => 
             <polygon points="16,3 27,9.5 27,22.5 16,29 5,22.5 5,9.5" fill="none" stroke={COLORS.accent} strokeWidth="2.5" strokeLinejoin="round" />
             <circle cx="16" cy="16" r="3" fill={COLORS.amber} />
           </svg>
-          <span>HEXLIGHT</span>
+          <span>هكسلايت</span>
         </a>
 
         <select className="tb-select" value="" onChange={(e) => { if (e.target.value) ed.loadTemplate(e.target.value); e.target.value = ""; }}>
-          <option value="">Load template…</option>
+          <option value="">تحميل قالب…</option>
           {TEMPLATES.map((t) => (
             <option key={t.id} value={t.id}>{t.name}</option>
           ))}
         </select>
 
-        <span className="tb-label">Grid orientation</span>
+        <span className="tb-label">اتجاه الشبكة</span>
         <div className="seg icon">
-          <button className={ed.orientation === "pointy" ? "active" : ""} onClick={() => ed.orientation !== "pointy" && ed.toggleOrientation()} title="Pointy-top">⬢</button>
-          <button className={ed.orientation === "flat" ? "active" : ""} onClick={() => ed.orientation !== "flat" && ed.toggleOrientation()} title="Flat-top">⬣</button>
+          <button className={ed.orientation === "pointy" ? "active" : ""} onClick={() => ed.orientation !== "pointy" && ed.toggleOrientation()} title="رأس مدبّب">⬢</button>
+          <button className={ed.orientation === "flat" ? "active" : ""} onClick={() => ed.orientation !== "flat" && ed.toggleOrientation()} title="رأس مسطّح">⬣</button>
         </div>
 
         <div className="seg">
-          <button className={ed.units === "m" ? "active" : ""} onClick={() => ed.setUnits("m")}>m</button>
-          <button className={ed.units === "cm" ? "active" : ""} onClick={() => ed.setUnits("cm")}>cm</button>
+          <button className={ed.units === "m" ? "active" : ""} onClick={() => ed.setUnits("m")}>م</button>
+          <button className={ed.units === "cm" ? "active" : ""} onClick={() => ed.setUnits("cm")}>سم</button>
         </div>
 
         <div className="cct-pick">
           <span className={`cct-swatch ${CCT_BY_ID[ed.cctId]?.rgbic ? "rgbic" : ""}`}
             style={{ background: CCT_BY_ID[ed.cctId]?.rgbic ? undefined : CCT_BY_ID[ed.cctId]?.color }} />
-          <select className="tb-select" value={ed.cctId} onChange={(e) => ed.setCctId(e.target.value)} title="LED colour">
+          <select className="tb-select" value={ed.cctId} onChange={(e) => ed.setCctId(e.target.value)} title="لون الإضاءة">
             {CCT_OPTIONS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </div>
@@ -79,54 +79,54 @@ export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => 
           className="tb-name"
           value={ed.layoutName}
           onChange={(e) => ed.setLayoutName(e.target.value)}
-          placeholder="Untitled layout"
-          aria-label="Layout name"
+          placeholder="تصميم بدون اسم"
+          aria-label="اسم التصميم"
         />
         <span className="tb-pencil">✎</span>
 
         <div className="spacer" />
 
         <div className="seg">
-          <button disabled={!ed.canUndo} onClick={ed.undo} title="Undo (Ctrl+Z)">↶</button>
-          <button disabled={!ed.canRedo} onClick={ed.redo} title="Redo (Ctrl+Shift+Z)">↷</button>
+          <button disabled={!ed.canUndo} onClick={ed.undo} title="تراجع (Ctrl+Z)">↶</button>
+          <button disabled={!ed.canRedo} onClick={ed.redo} title="إعادة (Ctrl+Shift+Z)">↷</button>
         </div>
-        <button className="tbtn" onClick={ed.clear}>New layout</button>
-        <button className="tbtn" onClick={ed.clear}>Clear layout</button>
-        <button className="tbtn primary" onClick={onExport}>Export PDF</button>
+        <button className="tbtn" onClick={ed.clear}>تصميم جديد</button>
+        <button className="tbtn" onClick={ed.clear}>مسح التصميم</button>
+        <button className="tbtn primary" onClick={onExport}>تصدير PDF</button>
       </div>
 
       {/* ---- row 2 ---- */}
       <div className="tb-row">
         <div className="seg">
-          <button className={ed.mode === "hex" ? "active" : ""} onClick={() => ed.setMode("hex")}><HexIcon /> Hex</button>
-          <button className={ed.mode === "lines" ? "active" : ""} onClick={() => ed.setMode("lines")}><LinesIcon /> Lines</button>
-          <button className={ed.mode === "move" ? "active" : ""} onClick={() => ed.setMode("move")}><MoveIcon /> Move</button>
+          <button className={ed.mode === "hex" ? "active" : ""} onClick={() => ed.setMode("hex")}><HexIcon /> سداسي</button>
+          <button className={ed.mode === "lines" ? "active" : ""} onClick={() => ed.setMode("lines")}><LinesIcon /> خطوط</button>
+          <button className={ed.mode === "move" ? "active" : ""} onClick={() => ed.setMode("move")}><MoveIcon /> تحريك</button>
         </div>
 
         {ed.mode === "lines" ? (
           <>
-            <span className="tb-label">Line bars</span>
+            <span className="tb-label">أضلاع خطية</span>
             <select className="tb-select" value={ed.lineSystem} onChange={(e) => ed.setLineSystem(e.target.value)}>
-              {SYSTEMS.map((s) => <option key={s.id} value={s.id}>{s.segmentLength}mm</option>)}
+              {SYSTEMS.map((s) => <option key={s.id} value={s.id}>{s.segmentLength}مم</option>)}
             </select>
           </>
         ) : (
           <>
-            <span className="tb-label">Hex bars</span>
+            <span className="tb-label">أضلاع سداسية</span>
             <select className="tb-select" value={ed.hexSystem} onChange={(e) => ed.setHexSystem(e.target.value)}>
-              {SYSTEMS.map((s) => <option key={s.id} value={s.id}>{s.segmentLength}mm</option>)}
+              {SYSTEMS.map((s) => <option key={s.id} value={s.id}>{s.segmentLength}مم</option>)}
             </select>
           </>
         )}
 
         <div className="cfg-wrap">
-          <button className={`tbtn ${cfgOpen ? "on" : ""}`} onClick={() => setCfgOpen((v) => !v)}>⚙ Bar configuration ▾</button>
+          <button className={`tbtn ${cfgOpen ? "on" : ""}`} onClick={() => setCfgOpen((v) => !v)}>⚙ إعدادات أضلع ▾</button>
           {cfgOpen && <BarConfig ed={ed} onClose={() => setCfgOpen(false)} />}
         </div>
 
         <div className="spacer" />
 
-        <button className="tbtn pill" title="Room size — set in Light check">▭ {roomLabel}</button>
+        <button className="tbtn pill" title="حجم الغرفة — يُضبط في فحص الإضاءة">▭ {roomLabel}</button>
       </div>
     </div>
   );

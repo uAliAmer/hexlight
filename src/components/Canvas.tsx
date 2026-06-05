@@ -322,28 +322,28 @@ export default function Canvas({ ed }: P) {
       </svg>
 
       <div className="canvas-hud">
-        <span>{ed.bom.totalSegments} bars</span>
+        <span>{ed.bom.totalSegments} ضلع</span>
         <span>·</span>
-        <span>{Math.round(view.scale * 1000) / 10} px/m</span>
-        <button className="hud-btn" onClick={() => fit(ed, size)}>Fit</button>
-        <button className="hud-btn ghost" onClick={() => copyLayout(ed)} title="Copy layout as template definition">Copy</button>
-        <button className="hud-btn ghost" onClick={() => setKeys((v) => !v)} title="Shortcuts">⌨</button>
+        <span>{Math.round(view.scale * 1000) / 10} بكسل/م</span>
+        <button className="hud-btn" onClick={() => fit(ed, size)}>ملاءمة</button>
+        <button className="hud-btn ghost" onClick={() => copyLayout(ed)} title="نسخ التصميم كقالب">نسخ</button>
+        <button className="hud-btn ghost" onClick={() => setKeys((v) => !v)} title="الاختصارات">⌨</button>
       </div>
 
       {keys && (
         <div className="keys-panel" onClick={() => setKeys(false)}>
-          <h4>Shortcuts</h4>
+          <h4>الاختصارات</h4>
           <ul>
-            <li><b>Drag</b> paint cells</li>
-            <li><b>Shift / Alt-drag</b> erase</li>
-            <li><b>Click</b> toggle one</li>
-            <li><b>Right / Middle / Space-drag</b> pan</li>
-            <li><b>Scroll</b> zoom</li>
-            <li><b>H / L / M</b> Hex · Lines · Move</li>
-            <li><b>1 / 2</b> bar size</li>
-            <li><b>O</b> orientation · <b>F</b> fit</li>
-            <li><b>⌘/Ctrl+Z</b> undo · <b>+Shift</b> redo</li>
-            <li><b>Shift+C</b> clear</li>
+            <li><b>سحب</b> رسم الخلايا</li>
+            <li><b>Shift / Alt + سحب</b> مسح</li>
+            <li><b>نقر</b> تبديل خلية</li>
+            <li><b>يمين / أوسط / Space + سحب</b> تحريك العرض</li>
+            <li><b>عجلة الفأرة</b> تكبير</li>
+            <li><b>H / L / M</b> سداسي · خطوط · تحريك</li>
+            <li><b>1 / 2</b> حجم الضلع</li>
+            <li><b>O</b> الاتجاه · <b>F</b> ملاءمة</li>
+            <li><b>⌘/Ctrl+Z</b> تراجع · <b>+Shift</b> إعادة</li>
+            <li><b>Shift+C</b> مسح</li>
           </ul>
         </div>
       )}
@@ -358,8 +358,8 @@ function copyLayout(ed: Editor) {
   const lines = Object.values(ed.doc.lines).map((l) => [Math.round(l.ax), Math.round(l.ay), Math.round(l.bx), Math.round(l.by)]);
   const out = JSON.stringify({ hex, lines });
   navigator.clipboard?.writeText(out).then(
-    () => alert("Layout copied — paste it in chat with a template name."),
-    () => window.prompt("Copy this layout:", out),
+    () => alert("تم نسخ التصميم — الصقه في المحادثة مع اسم القالب."),
+    () => window.prompt("انسخ هذا التصميم:", out),
   );
 }
 
@@ -398,11 +398,11 @@ function RoomOverlay({
       <rect x={x} y={y} width={pw} height={ph} fill="none" stroke={COLORS.accent}
         strokeWidth={1.5} strokeDasharray="8 6" rx={4} />
       <text x={x + pw / 2} y={y - 8} fill={COLORS.accent} fontSize={13} textAnchor="middle"
-        fontFamily="Barlow Condensed, sans-serif" letterSpacing={0.5}>
-        ROOM {w.toFixed(1)} × {d.toFixed(1)} m
+        fontFamily="IBM Plex Sans Arabic, sans-serif" letterSpacing={0.5}>
+        غرفة {w.toFixed(1)} × {d.toFixed(1)} م
       </text>
-      <text x={x + 6} y={y + ph - 6} fill={COLORS.muted} fontSize={11}>
-        {(w * d).toFixed(1)} m²
+      <text x={x + 6} y={y + ph - 6} fill={COLORS.muted} fontSize={11} fontFamily="IBM Plex Sans Arabic, sans-serif">
+        {(w * d).toFixed(1)} م²
       </text>
     </g>
   );

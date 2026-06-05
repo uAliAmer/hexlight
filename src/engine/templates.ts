@@ -85,20 +85,20 @@ const G14: Cell[] = [
 ];
 
 export const TEMPLATES: TemplateDef[] = [
-  tpl("h14", "14-Grid Honeycomb", "pointy", G14, { featured: true }),
-  tpl("h8", "8-Grid Honeycomb", "pointy", [
+  tpl("h14", "خلية 14", "pointy", G14, { featured: true }),
+  tpl("h8", "خلية 8", "pointy", [
     [-1, -1], [0, -1], [1, -1], [0, 0], [-1, 0], [-2, 1], [-1, 1], [0, 1],
   ]),
-  tpl("h5", "5-Grid Honeycomb", "flat", [
+  tpl("h5", "خلية 5", "flat", [
     [-1, 0], [0, 0], [1, -1], [1, 0], [-1, 1],
   ]),
-  tpl("dual", "Dual-Zone", "flat", [
+  tpl("dual", "منطقتان", "flat", [
     [1, -3], [-1, -2], [0, -2], [1, -2], [-1, -1], [1, 0], [-1, 1], [0, 1], [1, 1], [-1, 2],
   ]),
-  tpl("h13border", "13-Grid + Border", "flat", [
+  tpl("h13border", "خلية 13 + إطار", "flat", [
     [-2, 1], [-2, 2], [-1, 1], [0, 0], [0, 1], [1, 0], [2, -1], [2, 0], [2, 1], [1, 1], [0, 2], [-1, 2], [-2, 3],
   ], { border: 120 }),
-  tpl("h23", "23-Grid Honeycomb", "pointy", [
+  tpl("h23", "خلية 23", "pointy", [
     [0, -3], [1, -3], [2, -3], [3, -3], [4, -3],
     [3, -2], [2, -2], [1, -2], [0, -2],
     [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1],

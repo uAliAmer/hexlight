@@ -69,12 +69,12 @@ export interface UseCase {
 }
 
 export const USE_CASES: UseCase[] = [
-  { id: "garage", label: "Garage (general)", targetLux: 300, workPlaneM: 0 },
-  { id: "workshop", label: "Workshop", targetLux: 500, workPlaneM: 0.85 },
-  { id: "gym", label: "Home gym", targetLux: 400, workPlaneM: 0 },
-  { id: "detailing", label: "Detailing / paint bay", targetLux: 750, workPlaneM: 0 },
-  { id: "salon", label: "Salon / barber (per chair)", targetLux: 500, workPlaneM: 0.85 },
-  { id: "living", label: "Living / kitchen feature", targetLux: 200, workPlaneM: 0.75 },
+  { id: "garage", label: "كراج (عام)", targetLux: 300, workPlaneM: 0 },
+  { id: "workshop", label: "ورشة", targetLux: 500, workPlaneM: 0.85 },
+  { id: "gym", label: "صالة رياضية منزلية", targetLux: 400, workPlaneM: 0 },
+  { id: "detailing", label: "تلميع / رشّ", targetLux: 750, workPlaneM: 0 },
+  { id: "salon", label: "صالون / حلاقة (لكل كرسي)", targetLux: 500, workPlaneM: 0.85 },
+  { id: "living", label: "غرفة معيشة / مطبخ", targetLux: 200, workPlaneM: 0.75 },
 ];
 
 export const USE_CASE_BY_ID = Object.fromEntries(USE_CASES.map((u) => [u.id, u])) as Record<string, UseCase>;
@@ -89,10 +89,10 @@ export interface CctOption {
   rgbic?: boolean;
 }
 export const CCT_OPTIONS: CctOption[] = [
-  { id: "6500", label: "6500K Cool", color: "#f1f6ff", lumenScale: 1.0 },
-  { id: "4000", label: "4000K Neutral", color: "#fff3e2", lumenScale: 0.97 },
-  { id: "3000", label: "3000K Warm", color: "#ffe1b8", lumenScale: 0.9 },
-  { id: "rgbic", label: "RGBIC", color: "#7df0ff", lumenScale: 0.75, rgbic: true },
+  { id: "6500", label: "6500K أبيض", color: "#f1f6ff", lumenScale: 1.0 },
+  { id: "4000", label: "4000K أوف وايت", color: "#fff3e2", lumenScale: 0.97 },
+  { id: "3000", label: "3000K شمسي", color: "#ffe1b8", lumenScale: 0.9 },
+  { id: "rgbic", label: "RGBIC ألوان", color: "#7df0ff", lumenScale: 0.75, rgbic: true },
 ];
 export const CCT_BY_ID = Object.fromEntries(CCT_OPTIONS.map((c) => [c.id, c])) as Record<string, CctOption>;
 
@@ -100,12 +100,12 @@ export const CCT_BY_ID = Object.fromEntries(CCT_OPTIONS.map((c) => [c.id, c])) a
 export type ConnectorType = "i" | "l" | "v" | "y" | "t" | "multi";
 export const CONNECTOR_ORDER: ConnectorType[] = ["i", "l", "v", "y", "t", "multi"];
 export const CONNECTOR_LABELS: Record<ConnectorType, string> = {
-  i: "I — straight",
-  l: "L — right-angle",
-  v: "V — angled two-way",
-  y: "Y — three-way",
-  t: "T — power tap",
-  multi: "X — four-way",
+  i: "I — مستقيم",
+  l: "L — زاوية قائمة",
+  v: "V — اتجاهين بزاوية",
+  y: "Y — ثلاثي",
+  t: "T — مأخذ طاقة",
+  multi: "X — رباعي",
 };
 
 // Theme colors (from bundle CSS)
