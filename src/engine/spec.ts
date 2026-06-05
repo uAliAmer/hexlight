@@ -1,7 +1,8 @@
 // Spec constants reverse-engineered from app.hex-planner.com bundle.
 // These are the source-of-truth numbers the original planner uses.
 
-export type BarLength = 440 | 565 | 1176;
+// bar segment length in mm (integer or decimal, e.g. T5 actual lengths)
+export type BarLength = number;
 
 export interface SystemSpec {
   id: string;
@@ -13,26 +14,33 @@ export interface SystemSpec {
   pricePerPowerSupply: number;
 }
 
-// Order matters: hex systems first, line system last.
+// Order matters: hex systems first, then T5 actual-length bars, line system last.
 export const SYSTEMS: SystemSpec[] = [
   { id: "hex440", label: "440mm", segmentLength: 440, barEndToConnectorCenterMm: 8.9, pricePerSegment: 29, pricePerConnector: 5, pricePerPowerSupply: 49 },
   { id: "hex565", label: "565mm", segmentLength: 565, barEndToConnectorCenterMm: 8.9, pricePerSegment: 35, pricePerConnector: 6, pricePerPowerSupply: 59 },
+  // T5 integrated LED battens — actual lengths (nominal cm shown as label, measured incl. pins)
+  { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 8.9, pricePerSegment: 15, pricePerConnector: 5, pricePerPowerSupply: 49 },
+  { id: "t5_45", label: "45cm", segmentLength: 425, barEndToConnectorCenterMm: 8.9, pricePerSegment: 20, pricePerConnector: 5, pricePerPowerSupply: 49 },
+  { id: "t5_60", label: "60cm", segmentLength: 548.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 25, pricePerConnector: 6, pricePerPowerSupply: 59 },
+  { id: "t5_90", label: "90cm", segmentLength: 848.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 35, pricePerConnector: 7, pricePerPowerSupply: 69 },
+  { id: "t5_120", label: "120cm", segmentLength: 1148.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 45, pricePerConnector: 8, pricePerPowerSupply: 79 },
   { id: "line1176", label: "1176mm", segmentLength: 1176, barEndToConnectorCenterMm: 8.9, pricePerSegment: 59, pricePerConnector: 8, pricePerPowerSupply: 79 },
 ];
 
 export const SYSTEM_BY_ID = Object.fromEntries(SYSTEMS.map((s) => [s.id, s])) as Record<string, SystemSpec>;
 
-// Electrical
-export const WATTS_PER_BAR: Record<BarLength, number> = { 440: 6, 565: 8, 1176: 16 };
+// Electrical — watts per bar by segment length (mm)
+export const WATTS_PER_BAR: Record<BarLength, number> = {
+  440: 6, 565: 8, 1176: 16,
+  288.3: 5, 425: 7, 548.8: 10, 848.8: 14, 1148.8: 18,
+};
 export const LM_PER_W = 110; // luminous efficacy
 export const DRIVER_EFFICIENCY = 0.86;
 export const MAX_WATTS_PER_RUN = 420; // one power input supplies up to this
 
-export const LUMENS_PER_BAR: Record<BarLength, number> = {
-  440: WATTS_PER_BAR[440] * LM_PER_W,
-  565: WATTS_PER_BAR[565] * LM_PER_W,
-  1176: WATTS_PER_BAR[1176] * LM_PER_W,
-};
+export const LUMENS_PER_BAR: Record<BarLength, number> = Object.fromEntries(
+  Object.entries(WATTS_PER_BAR).map(([len, w]) => [len, w * LM_PER_W]),
+) as Record<BarLength, number>;
 
 // User-editable bar configuration (Bar configuration popover).
 export interface BarConfig {
@@ -47,7 +55,9 @@ export const defaultBarConfig = (): BarConfig => ({
 });
 export const lumensForBar = (c: BarConfig, len: BarLength): number =>
   (c.wattsPerBar[len] ?? 0) * c.lmPerW;
-export const BAR_LENGTHS: BarLength[] = [440, 565, 1176];
+export const BAR_LENGTHS: BarLength[] = Object.keys(WATTS_PER_BAR)
+  .map(Number)
+  .sort((a, b) => a - b);
 
 // Light Check
 export const MAINTENANCE_FACTOR = 0.8; // MF

@@ -4,3 +4,5 @@ _ref/
 *.log
 .DS_Store
 .vite/
+
+tsconfig.tsbuildinfo
