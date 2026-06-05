@@ -324,26 +324,37 @@ export default function Canvas({ ed }: P) {
           );
         })}
 
-        {/* hanger anchors (suspended mount) — cable up to ceiling */}
+        {/* hanger anchors (suspended mount) — offset off the bars, cable to ceiling */}
         {suspended && ed.bom.hangerPoints.map((p, i) => {
-          const cx = sx(p.x), cy = sy(p.y), h = barPx * 2.6;
+          const nx = sx(p.x), ny = sy(p.y);
+          const r = Math.max(8, barPx * 0.85);
+          const off = r * 2.1 + barPx;
+          const ox = nx + p.dx * off, oy = ny + p.dy * off;
+          const h = r * 2.0;
           return (
             <g key={`hg${i}`} pointerEvents="none">
-              <line x1={cx} y1={cy} x2={cx} y2={cy - h} stroke={HANGER} strokeWidth={1.4} strokeDasharray="3 2" />
-              <line x1={cx - barPx * 0.55} y1={cy - h} x2={cx + barPx * 0.55} y2={cy - h} stroke={HANGER} strokeWidth={2.2} strokeLinecap="round" />
-              <circle cx={cx} cy={cy} r={barPx * 0.34} fill={HANGER} />
+              <line x1={nx} y1={ny} x2={ox} y2={oy} stroke={HANGER} strokeWidth={1.6} />
+              <circle cx={nx} cy={ny} r={Math.max(3, barPx * 0.4)} fill={HANGER} />
+              <line x1={ox} y1={oy} x2={ox} y2={oy - h} stroke={HANGER} strokeWidth={2.2} strokeDasharray="4 3" />
+              <line x1={ox - r * 0.9} y1={oy - h} x2={ox + r * 0.9} y2={oy - h} stroke={HANGER} strokeWidth={3} strokeLinecap="round" />
+              <circle cx={ox} cy={oy} r={r * 0.42} fill={HANGER} />
             </g>
           );
         })}
 
-        {/* power cord plug points (always) */}
+        {/* power cord plug points (always) — offset off the bars with a leader */}
         {ed.bom.powerPoints.map((p, i) => {
-          const cx = sx(p.x), cy = sy(p.y), r = barPx * 0.62;
+          const nx = sx(p.x), ny = sy(p.y);
+          const r = Math.max(11, barPx * 1.05);
+          const off = r * 1.6 + barPx;
+          const ox = nx + p.dx * off, oy = ny + p.dy * off;
           return (
             <g key={`pw${i}`} pointerEvents="none">
-              <circle cx={cx} cy={cy} r={r + 2} fill={COLORS.amber} />
-              <circle cx={cx} cy={cy} r={r} fill={COLORS.bg} stroke={COLORS.amber} strokeWidth={1.5} />
-              <text x={cx} y={cy} fill={COLORS.amber} fontSize={r * 1.5} textAnchor="middle" dominantBaseline="central">⚡</text>
+              <line x1={nx} y1={ny} x2={ox} y2={oy} stroke={COLORS.amber} strokeWidth={1.8} />
+              <circle cx={nx} cy={ny} r={Math.max(3, barPx * 0.4)} fill={COLORS.amber} />
+              <circle cx={ox} cy={oy} r={r + 2} fill={COLORS.amber} />
+              <circle cx={ox} cy={oy} r={r} fill={COLORS.bg} stroke={COLORS.amber} strokeWidth={1.8} />
+              <text x={ox} y={oy} fill={COLORS.amber} fontSize={r * 1.5} textAnchor="middle" dominantBaseline="central">⚡</text>
             </g>
           );
         })}

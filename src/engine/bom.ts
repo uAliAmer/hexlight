@@ -54,6 +54,24 @@ export function nodeInfos(g: Graph): Map<string, NodeInfo> {
 }
 
 export interface Point { x: number; y: number }
+// A marker at a node, with a unit direction into the widest open gap between the
+// bars there — so the icon can be offset off the tubes with a short leader.
+export interface MarkerPoint { x: number; y: number; dx: number; dy: number }
+
+// direction bisecting the largest angular gap between bars at a node
+function openDir(dirs: { x: number; y: number }[]): { dx: number; dy: number } {
+  if (dirs.length === 0) return { dx: 0, dy: -1 };
+  if (dirs.length === 1) return { dx: -dirs[0].x, dy: -dirs[0].y };
+  const angs = dirs.map((d) => Math.atan2(d.y, d.x)).sort((a, b) => a - b);
+  let bestMid = 0, bestGap = -1;
+  for (let i = 0; i < angs.length; i++) {
+    const a = angs[i];
+    const b = i + 1 < angs.length ? angs[i + 1] : angs[0] + Math.PI * 2;
+    const gap = b - a;
+    if (gap > bestGap) { bestGap = gap; bestMid = a + gap / 2; }
+  }
+  return { dx: Math.cos(bestMid), dy: Math.sin(bestMid) };
+}
 
 export interface SegmentGroup {
   systemId: string;
@@ -76,8 +94,8 @@ export interface Bom {
   totalSegments: number;
   totalConnectors: number;
   suspensionPoints: number; // cables for suspended mounting: one per junction + free end
-  powerPoints: Point[]; // where each power cord plugs in (world mm)
-  hangerPoints: Point[]; // where suspension cables attach (world mm)
+  powerPoints: MarkerPoint[]; // where each power cord plugs in (world mm)
+  hangerPoints: MarkerPoint[]; // where suspension cables attach (world mm)
 }
 
 // Connected components of active edges -> each is a power run (with its nodes).
@@ -218,13 +236,18 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     if (info.type) counts.set(info.type, (counts.get(info.type) ?? 0) + 1);
   }
   const xy = (k: string): Point => ({ x: infos.get(k)!.x, y: infos.get(k)!.y });
+  const marker = (k: string): MarkerPoint => {
+    const info = infos.get(k)!;
+    const o = openDir(info.dirs);
+    return { x: info.x, y: info.y, dx: o.dx, dy: o.dy };
+  };
 
   // power runs + power-cord ports + hangers, per connected run.
   const runs = powerRuns(g, config.wattsPerBar);
   const totalWatts = runs.reduce((a, r) => a + r.watts, 0);
   let powerInputs = 0;
-  const powerPoints: Point[] = [];
-  const hangerPoints: Point[] = [];
+  const powerPoints: MarkerPoint[] = [];
+  const hangerPoints: MarkerPoint[] = [];
 
   for (const run of runs) {
     const deg = (k: string) => infos.get(k)?.dirs.length ?? 0;
@@ -244,7 +267,7 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     if (pool.length === 0) pool = run.nodes; // pathological: fully saturated run
     const cordNodes = spreadNodes(pool, xy, inputs);
     for (const k of cordNodes) {
-      powerPoints.push(xy(k));
+      powerPoints.push(marker(k));
       const info = infos.get(k)!;
       if (deg(k) !== 1 && info.type) {
         const to = PORT_UPGRADE[info.type];
@@ -271,7 +294,7 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     const approxHexes = ((mxX - mnX) * (mxY - mnY)) / hexArea;
     // ~1 cable per 2.5 hexes (density); always >=2
     const targetN = Math.min(24, Math.max(2, Math.round(approxHexes / 2.5)));
-    for (const k of balancedAnchors(run.nodes, xy, targetN)) hangerPoints.push(xy(k));
+    for (const k of balancedAnchors(run.nodes, xy, targetN)) hangerPoints.push(marker(k));
   }
   const suspensionPoints = hangerPoints.length;
 
