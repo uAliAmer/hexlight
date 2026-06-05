@@ -143,25 +143,29 @@ const PORT_UPGRADE: Partial<Record<ConnectorType, ConnectorType>> = {
 
 const SQRT3 = Math.sqrt(3);
 
-// Even anchor lattice: a regular cols×rows grid of cell centres across the
-// bbox, each snapped to the nearest free node. Symmetric and evenly spaced
-// (edge-to-edge), unlike clustering which drifts into irregular clumps.
+// Even anchor lattice aligned to the structure's own node columns/rows. Target
+// column x's and row y's are each snapped to actual node coordinates, so the
+// resulting anchors line up in clean straight rows and columns (no per-row
+// drift), evenly spaced edge-to-edge.
 function gridAnchors(
   keys: string[], P: (k: string) => Point, cols: number, rows: number,
   bb: { minX: number; minY: number; maxX: number; maxY: number },
 ): string[] {
   const pts = keys.map(P);
   const w = bb.maxX - bb.minX, h = bb.maxY - bb.minY;
+  const uniq = (vals: number[]) => [...new Set(vals.map((v) => Math.round(v)))].sort((a, b) => a - b);
+  const xsAll = uniq(pts.map((p) => p.x)), ysAll = uniq(pts.map((p) => p.y));
+  const snapTo = (t: number, arr: number[]) => arr.reduce((b, v) => (Math.abs(v - t) < Math.abs(b - t) ? v : b), arr[0]);
+  const colX = [...new Set(Array.from({ length: cols }, (_, c) => snapTo(bb.minX + ((c + 0.5) / cols) * w, xsAll)))];
+  const rowY = [...new Set(Array.from({ length: rows }, (_, r) => snapTo(bb.minY + ((r + 0.5) / rows) * h, ysAll)))];
   const used = new Set<string>();
   const out: string[] = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const tx = bb.minX + ((c + 0.5) / cols) * w;
-      const ty = bb.minY + ((r + 0.5) / rows) * h;
+  for (const ry of rowY) {
+    for (const cx of colX) {
       let best: string | null = null, bd = Infinity;
       for (let i = 0; i < keys.length; i++) {
         if (used.has(keys[i])) continue;
-        const d = (pts[i].x - tx) ** 2 + (pts[i].y - ty) ** 2;
+        const d = (pts[i].x - cx) ** 2 + (pts[i].y - ry) ** 2;
         if (d < bd) { bd = d; best = keys[i]; }
       }
       if (best != null) { used.add(best); out.push(best); }
