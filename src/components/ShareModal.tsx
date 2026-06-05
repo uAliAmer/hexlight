@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { Editor } from "../store";
 import { encodeDesign } from "../engine/share";
 
@@ -12,8 +11,12 @@ export default function ShareModal({ ed, onClose }: { ed: Editor; onClose: () =>
     const encoded = encodeDesign(ed.buildSharePayload());
     const link = `${location.origin}${location.pathname}#/app?d=${encoded}`;
     setUrl(link);
-    // low error-correction = less dense / smaller QR for long URLs
-    QRCode.toDataURL(link, { margin: 1, width: 300, errorCorrectionLevel: "L", color: { dark: "#0c0e13", light: "#ffffff" } })
+    // low error-correction = less dense / smaller QR for long URLs.
+    // lazy-loaded so qrcode stays out of the main bundle.
+    import("qrcode")
+      .then(({ default: QRCode }) =>
+        QRCode.toDataURL(link, { margin: 1, width: 300, errorCorrectionLevel: "L", color: { dark: "#0c0e13", light: "#ffffff" } }),
+      )
       .then(setQr)
       .catch(() => setQr(""));
   }, [ed]);

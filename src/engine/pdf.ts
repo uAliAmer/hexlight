@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { Doc, buildGraph } from "./geometry";
 import { computeBom } from "./bom";
 import { computeLux, LuxInput } from "./lux";
@@ -81,6 +79,12 @@ export async function exportPdf(
   name = "تصميم بدون اسم",
   cctId = "6500",
 ) {
+  // lazy-loaded so jspdf + html2canvas stay out of the main bundle
+  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+    import("jspdf"),
+    import("html2canvas"),
+  ]);
+
   const bom = computeBom(doc, config, cctId === "rgbic");
   const lx = computeLux(doc, { ...lux, clusterExtentM }, config);
   const now = new Date().toLocaleString("ar-EG");
