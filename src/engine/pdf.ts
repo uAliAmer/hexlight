@@ -23,7 +23,14 @@ function layoutSvg(doc: Doc, cctId: string): string {
   const vb = `${minX - pad} ${minY - pad} ${W} ${H}`;
   const sw = Math.max(W, H) * 0.012;
   const cct = CCT_BY_ID[cctId] ?? CCT_BY_ID["6500"];
-  const led = cct.rgbic ? "#7df0ff" : cct.color;
+  const led = cct.rgbic ? "url(#pdf-rgbic)" : cct.color;
+  const glow = cct.rgbic ? "#7df0ff" : cct.color;
+  const period = Math.max(W, H) * 0.5; // rainbow repeat span in world units
+  const rgbicDef = cct.rgbic
+    ? `<defs><linearGradient id="pdf-rgbic" x1="${minX}" y1="${minY}" x2="${minX + period}" y2="${minY}" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+        <stop offset="0" stop-color="#ff4d4d"/><stop offset="0.17" stop-color="#ffb030"/><stop offset="0.34" stop-color="#ffe84d"/><stop offset="0.5" stop-color="#4dff7a"/><stop offset="0.67" stop-color="#4dd2ff"/><stop offset="0.84" stop-color="#7a6bff"/><stop offset="1" stop-color="#ff4dd2"/>
+      </linearGradient></defs>`
+    : "";
   const shorten = 8.9;
 
   let bars = "";
@@ -39,8 +46,9 @@ function layoutSvg(doc: Doc, cctId: string): string {
     nodes += `<circle cx="${n.x}" cy="${n.y}" r="${sw * 1.1}" fill="#3d87f5"/>`;
   }
   return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:340px;display:block">
+    ${rgbicDef}
     <rect x="${minX - pad}" y="${minY - pad}" width="${W}" height="${H}" fill="#0b0e14"/>
-    <g style="filter:drop-shadow(0 0 ${sw * 1.4}px ${led}aa)">${bars}</g>${nodes}
+    <g style="filter:drop-shadow(0 0 ${sw * 1.4}px ${glow}aa)">${bars}</g>${nodes}
   </svg>`;
 }
 
