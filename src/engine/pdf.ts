@@ -61,7 +61,7 @@ export async function exportPdf(
   name = "تصميم بدون اسم",
   cctId = "6500",
 ) {
-  const bom = computeBom(doc, config);
+  const bom = computeBom(doc, config, cctId === "rgbic");
   const lx = computeLux(doc, { ...lux, clusterExtentM }, config);
   const now = new Date().toLocaleString("ar-EG");
 
@@ -115,7 +115,7 @@ export async function exportPdf(
 
     <div style="display:flex;justify-content:space-between;align-items:center;border-top:2px solid #0c0e13;padding-top:12px">
       <div style="font-size:20px;font-weight:700">السعر التقديري</div>
-      <div style="font-size:20px;font-weight:700;color:#3d87f5">$${bom.estimatedPrice}</div>
+      <div style="font-size:20px;font-weight:700;color:#3d87f5">${bom.estimatedPrice.toLocaleString("en-US")} د.ع</div>
     </div>
 
     <div id="pdf-foot" style="margin-top:20px;padding-top:12px;border-top:1px solid #e6eaf0;font-size:12px;color:#7a8aa0;display:flex;justify-content:space-between">

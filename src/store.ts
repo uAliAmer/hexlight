@@ -135,7 +135,7 @@ export function useEditor() {
     });
   }, []);
 
-  const bom = useMemo(() => computeBom(doc, barConfig), [doc, orientation, barConfig]);
+  const bom = useMemo(() => computeBom(doc, barConfig, cctId === "rgbic"), [doc, orientation, barConfig, cctId]);
 
   // cluster extent (m) for auto-drop, from bom-less quick bounds
   const clusterExtentM = useMemo(() => extentM(doc), [doc, orientation]);

@@ -35,7 +35,7 @@ export default function Sidebar({ ed }: { ed: Editor }) {
 
         <div className="bom-total">
           <span>السعر التقديري</span>
-          <span>${bom.estimatedPrice}</span>
+          <span>{bom.estimatedPrice.toLocaleString("en-US")} د.ع</span>
         </div>
       </Section>
 

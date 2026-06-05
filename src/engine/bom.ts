@@ -4,13 +4,15 @@
 import { adjacency, buildGraph, Doc, Graph } from "./geometry";
 import {
   BarConfig,
+  barPrice,
   BarLength,
+  CONNECTOR_PRICE,
   ConnectorType,
   CONNECTOR_ORDER,
   defaultBarConfig,
   MAX_WATTS_PER_RUN,
+  POWER_PRICE,
   SYSTEM_BY_ID,
-  SYSTEMS,
 } from "./spec";
 
 export interface NodeInfo {
@@ -107,7 +109,7 @@ function powerRuns(g: Graph, wattsPerBar: Record<BarLength, number>): { watts: n
   return runs;
 }
 
-export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig()): Bom {
+export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgbic = false): Bom {
   const g = buildGraph(doc);
 
   // bars by length / system
@@ -144,15 +146,13 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig()): Bo
   const totalWatts = runs.reduce((a, r) => a + r.watts, 0);
   const powerInputs = runs.reduce((a, r) => a + Math.max(1, Math.ceil(r.watts / MAX_WATTS_PER_RUN)), 0);
 
-  // price (per-system rates, weighted)
-  let estimatedPrice = 0;
+  // price in IQD — bars by white/RGBIC rate, connectors + power flat
   const totalSegments = segmentGroups.reduce((a, s) => a + s.count, 0);
   const totalConnectors = connectorCounts.reduce((a, c) => a + c.count, 0);
-  for (const s of segmentGroups) estimatedPrice += s.count * SYSTEM_BY_ID[s.systemId].pricePerSegment;
-  // connectors/PSU priced at the dominant system's rate
-  const domSys = segmentGroups[0] ? SYSTEM_BY_ID[segmentGroups[0].systemId] : SYSTEMS[0];
-  estimatedPrice += totalConnectors * domSys.pricePerConnector;
-  estimatedPrice += powerInputs * domSys.pricePerPowerSupply;
+  let estimatedPrice = 0;
+  for (const s of segmentGroups) estimatedPrice += s.count * barPrice(s.systemId, rgbic);
+  estimatedPrice += totalConnectors * CONNECTOR_PRICE;
+  estimatedPrice += powerInputs * POWER_PRICE;
 
   return {
     segmentGroups,

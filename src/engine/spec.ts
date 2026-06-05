@@ -9,23 +9,31 @@ export interface SystemSpec {
   label: string;
   segmentLength: BarLength; // node-to-node distance, mm
   barEndToConnectorCenterMm: number; // bar is shortened by this at each end; connector occupies center
-  pricePerSegment: number;
-  pricePerConnector: number;
-  pricePerPowerSupply: number;
   rgbicOnly?: boolean; // size only offered in RGBIC colour mode
 }
 
 // Standard T5 integrated LED battens — actual lengths (nominal cm as label,
 // measured incl. pins so ~5cm shorter than nominal).
 export const SYSTEMS: SystemSpec[] = [
-  { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 8.9, pricePerSegment: 15, pricePerConnector: 5, pricePerPowerSupply: 49, rgbicOnly: true },
-  { id: "t5_45", label: "45cm", segmentLength: 425, barEndToConnectorCenterMm: 8.9, pricePerSegment: 20, pricePerConnector: 5, pricePerPowerSupply: 49 },
-  { id: "t5_60", label: "60cm", segmentLength: 548.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 25, pricePerConnector: 6, pricePerPowerSupply: 59 },
-  { id: "t5_90", label: "90cm", segmentLength: 848.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 35, pricePerConnector: 7, pricePerPowerSupply: 69 },
-  { id: "t5_120", label: "120cm", segmentLength: 1148.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 45, pricePerConnector: 8, pricePerPowerSupply: 79 },
+  { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 8.9, rgbicOnly: true },
+  { id: "t5_45", label: "45cm", segmentLength: 425, barEndToConnectorCenterMm: 8.9 },
+  { id: "t5_60", label: "60cm", segmentLength: 548.8, barEndToConnectorCenterMm: 8.9 },
+  { id: "t5_90", label: "90cm", segmentLength: 848.8, barEndToConnectorCenterMm: 8.9 },
+  { id: "t5_120", label: "120cm", segmentLength: 1148.8, barEndToConnectorCenterMm: 8.9 },
 ];
 
 export const SYSTEM_BY_ID = Object.fromEntries(SYSTEMS.map((s) => [s.id, s])) as Record<string, SystemSpec>;
+
+// Pricing in Iraqi Dinar (IQD). Bar price depends on white vs RGBIC.
+export const CURRENCY = "د.ع";
+export const CONNECTOR_PRICE = 1500;
+export const POWER_PRICE = 1500;
+const BAR_PRICE: { white: Record<string, number>; rgbic: Record<string, number> } = {
+  white: { t5_30: 4500, t5_45: 3500, t5_60: 4000, t5_90: 4500, t5_120: 5500 },
+  rgbic: { t5_30: 4500, t5_45: 5000, t5_60: 5500, t5_90: 6250, t5_120: 7500 },
+};
+export const barPrice = (systemId: string, rgbic: boolean): number =>
+  (rgbic ? BAR_PRICE.rgbic : BAR_PRICE.white)[systemId] ?? 0;
 
 // Electrical — watts per bar by segment length (mm)
 export const WATTS_PER_BAR: Record<BarLength, number> = {
@@ -107,12 +115,12 @@ export const CCT_BY_ID = Object.fromEntries(CCT_OPTIONS.map((c) => [c.id, c])) a
 export type ConnectorType = "i" | "l" | "v" | "y" | "t" | "multi";
 export const CONNECTOR_ORDER: ConnectorType[] = ["i", "l", "v", "y", "t", "multi"];
 export const CONNECTOR_LABELS: Record<ConnectorType, string> = {
-  i: "I — مستقيم",
-  l: "L — زاوية قائمة",
-  v: "V — اتجاهين بزاوية",
-  y: "Y — ثلاثي",
-  t: "T — مأخذ طاقة",
-  multi: "X — رباعي",
+  i: "I — مستقيم 180°",
+  l: "L — زاوية 90°",
+  v: "V — زاوية 120°",
+  y: "Y — ثلاثي 120°",
+  t: "T — ثلاثي 90°",
+  multi: "X — رباعي 90°",
 };
 
 // Theme colors (from bundle CSS)
