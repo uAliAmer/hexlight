@@ -117,12 +117,57 @@ function powerRuns(g: Graph, wattsPerBar: Record<BarLength, number>): { watts: n
 }
 
 // A power cord needs a free port. A bar end (degree 1) is already open; a fully
-// used connector is not. So per power input with no open end available, one
-// connector in that run gets upgraded by one port (V->Y, I/L->T, Y/T->X).
+// used connector is not. So a cord placed on a connector upgrades it by one
+// port (V->Y, I/L->T, Y/T->X).
 const PORT_UPGRADE: Partial<Record<ConnectorType, ConnectorType>> = {
   v: "y", l: "t", i: "t", y: "multi", t: "multi",
 };
-const UPGRADE_PREFERENCE: ConnectorType[] = ["v", "l", "i", "y", "t"]; // 2-way first
+
+const SQRT3 = Math.sqrt(3);
+
+// Anchor positions along one axis (web suspension protocol): inset 20% from the
+// extremes, then subdivide so no gap exceeds ~3 hexes. lo/hi = bbox bounds,
+// hexStep = centre-to-centre spacing of one hex. Returns 1 point if negligible.
+function axisPositions(lo: number, hi: number, hexStep: number): number[] {
+  const span = hi - lo;
+  if (span < hexStep * 0.5) return [(lo + hi) / 2];
+  const inLo = lo + 0.2 * span, inHi = hi - 0.2 * span;
+  const inner = inHi - inLo;
+  const segs = Math.max(1, Math.ceil(inner / (3 * hexStep)));
+  const pts: number[] = [];
+  for (let i = 0; i <= segs; i++) pts.push(inLo + (inner * i) / segs);
+  return pts;
+}
+
+// Spread n points across a node set: 1 -> nearest the centroid; else
+// farthest-point sampling seeded from the most extreme node.
+function spreadNodes(keys: string[], P: (k: string) => Point, n: number): string[] {
+  if (n >= keys.length) return [...keys];
+  let cx = 0, cy = 0;
+  for (const k of keys) { const p = P(k); cx += p.x; cy += p.y; }
+  cx /= keys.length; cy /= keys.length;
+  const d2 = (a: Point, b: Point) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+  if (n === 1) {
+    let best = keys[0], bd = Infinity;
+    for (const k of keys) { const d = d2(P(k), { x: cx, y: cy }); if (d < bd) { bd = d; best = k; } }
+    return [best];
+  }
+  let seed = keys[0], sd = -1;
+  for (const k of keys) { const d = d2(P(k), { x: cx, y: cy }); if (d > sd) { sd = d; seed = k; } }
+  const chosen = [seed];
+  while (chosen.length < n) {
+    let best: string | null = null, bestD = -1;
+    for (const k of keys) {
+      if (chosen.includes(k)) continue;
+      let md = Infinity;
+      for (const c of chosen) { const d = d2(P(k), P(c)); if (d < md) md = d; }
+      if (md > bestD) { bestD = md; best = k; }
+    }
+    if (best == null) break;
+    chosen.push(best);
+  }
+  return chosen;
+}
 
 export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgbic = false): Bom {
   const g = buildGraph(doc);
@@ -154,10 +199,6 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
   const xy = (k: string): Point => ({ x: infos.get(k)!.x, y: infos.get(k)!.y });
 
   // power runs + power-cord ports + hangers, per connected run.
-  // - Each cord needs a free port: an open bar end (degree 1) is free, else
-  //   upgrade one connector by a port (V->Y, I/L->T, Y/T->X) at the cord node.
-  // - Hangers: every junction (deg>=3) + free end (deg 1); a pure loop with
-  //   neither gets two spread-out anchors.
   const runs = powerRuns(g, config.wattsPerBar);
   const totalWatts = runs.reduce((a, r) => a + r.watts, 0);
   let powerInputs = 0;
@@ -169,42 +210,43 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     const inputs = Math.max(1, Math.ceil(run.watts / MAX_WATTS_PER_RUN));
     powerInputs += inputs;
 
-    // cord attach points: open ends first, then upgraded connectors
-    const ends = run.nodes.filter((k) => deg(k) === 1);
-    const cordNodes: string[] = ends.slice(0, inputs);
-    let need = inputs - cordNodes.length;
-    if (need > 0) {
-      const byType = new Map<ConnectorType, string[]>();
-      for (const k of run.nodes) {
-        const t = infos.get(k)?.type;
-        if (t) (byType.get(t) ?? byType.set(t, []).get(t)!).push(k);
-      }
-      for (const from of UPGRADE_PREFERENCE) {
-        const to = PORT_UPGRADE[from];
-        const pool = byType.get(from);
-        if (!to || !pool) continue;
-        while (need > 0 && pool.length > 0) {
-          const k = pool.pop()!;
-          counts.set(from, (counts.get(from) ?? 0) - 1);
+    // cord attach points: spread across the run so feeds are balanced. A cord on
+    // a connector (not an open end) upgrades it by a port.
+    const cordNodes = spreadNodes(run.nodes, xy, inputs);
+    for (const k of cordNodes) {
+      powerPoints.push(xy(k));
+      const info = infos.get(k)!;
+      if (deg(k) !== 1 && info.type) {
+        const to = PORT_UPGRADE[info.type];
+        if (to) {
+          counts.set(info.type, (counts.get(info.type) ?? 0) - 1);
           counts.set(to, (counts.get(to) ?? 0) + 1);
-          cordNodes.push(k);
-          need--;
         }
-        if (need === 0) break;
       }
     }
-    for (const k of cordNodes) powerPoints.push(xy(k));
 
-    // hangers
-    const anchors = run.nodes.filter((k) => deg(k) === 1 || deg(k) >= 3);
-    if (anchors.length === 0) {
-      // pure loop: two most-separated nodes
-      const sorted = [...run.nodes].sort(
-        (a, b) => infos.get(a)!.x + infos.get(a)!.y - (infos.get(b)!.x + infos.get(b)!.y),
-      );
-      if (sorted.length) { hangerPoints.push(xy(sorted[0])); if (sorted.length > 1) hangerPoints.push(xy(sorted[sorted.length - 1])); }
-    } else {
-      for (const k of anchors) hangerPoints.push(xy(k));
+    // hangers: symmetric grid (20% inset, no >3-hex span) snapped to real nodes.
+    const rs = new Set(run.nodes);
+    let pSum = 0, pN = 0;
+    for (const e of g.edges.values()) {
+      if (!e.active || !rs.has(e.from) || !rs.has(e.to)) continue;
+      const a = g.nodes.get(e.from)!, b = g.nodes.get(e.to)!;
+      pSum += Math.hypot(a.x - b.x, a.y - b.y); pN++;
+    }
+    const pitch = pN ? pSum / pN : 1;
+    const hexStep = SQRT3 * pitch; // centre-to-centre of one hex
+    let mnX = Infinity, mnY = Infinity, mxX = -Infinity, mxY = -Infinity;
+    for (const k of run.nodes) { const p = xy(k); mnX = Math.min(mnX, p.x); mnY = Math.min(mnY, p.y); mxX = Math.max(mxX, p.x); mxY = Math.max(mxY, p.y); }
+    const xs = axisPositions(mnX, mxX, hexStep), ys = axisPositions(mnY, mxY, hexStep);
+    const used = new Set<string>();
+    for (const tx of xs) for (const ty of ys) {
+      let best: string | null = null, bd = Infinity;
+      for (const k of run.nodes) { const p = xy(k); const d = (p.x - tx) ** 2 + (p.y - ty) ** 2; if (d < bd) { bd = d; best = k; } }
+      if (best != null && Math.sqrt(bd) <= hexStep * 1.2 && !used.has(best)) { used.add(best); hangerPoints.push(xy(best)); }
+    }
+    if (used.size < 2 && run.nodes.length) { // fallback: two extremes
+      const ks = [...run.nodes].sort((a, b) => xy(a).x + xy(a).y - (xy(b).x + xy(b).y));
+      for (const k of [ks[0], ks[ks.length - 1]]) if (k && !used.has(k)) { used.add(k); hangerPoints.push(xy(k)); }
     }
   }
   const suspensionPoints = hangerPoints.length;
