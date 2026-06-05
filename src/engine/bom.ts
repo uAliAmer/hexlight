@@ -143,37 +143,29 @@ const PORT_UPGRADE: Partial<Record<ConnectorType, ConnectorType>> = {
 
 const SQRT3 = Math.sqrt(3);
 
-// Balanced anchor nodes: k-means partition of the actual nodes into n regions,
-// each anchored at the node nearest its centroid. Clusters tile the real shape
-// so the perimeter is covered (no empty-corner gaps), and load is balanced.
-function balancedAnchors(keys: string[], P: (k: string) => Point, n: number): string[] {
-  if (n >= keys.length) return [...keys];
+// Even anchor lattice: a regular cols×rows grid of cell centres across the
+// bbox, each snapped to the nearest free node. Symmetric and evenly spaced
+// (edge-to-edge), unlike clustering which drifts into irregular clumps.
+function gridAnchors(
+  keys: string[], P: (k: string) => Point, cols: number, rows: number,
+  bb: { minX: number; minY: number; maxX: number; maxY: number },
+): string[] {
   const pts = keys.map(P);
-  let centers = spreadNodes(keys, P, n).map((k) => ({ ...P(k) })); // FPS seeds
-  const assign = new Array(keys.length).fill(0);
-  for (let it = 0; it < 10; it++) {
-    for (let i = 0; i < pts.length; i++) {
-      let bi = 0, bd = Infinity;
-      for (let c = 0; c < centers.length; c++) {
-        const d = (pts[i].x - centers[c].x) ** 2 + (pts[i].y - centers[c].y) ** 2;
-        if (d < bd) { bd = d; bi = c; }
-      }
-      assign[i] = bi;
-    }
-    const sx = new Array(n).fill(0), sy = new Array(n).fill(0), cnt = new Array(n).fill(0);
-    for (let i = 0; i < pts.length; i++) { sx[assign[i]] += pts[i].x; sy[assign[i]] += pts[i].y; cnt[assign[i]]++; }
-    centers = centers.map((c, k) => (cnt[k] ? { x: sx[k] / cnt[k], y: sy[k] / cnt[k] } : c));
-  }
+  const w = bb.maxX - bb.minX, h = bb.maxY - bb.minY;
   const used = new Set<string>();
   const out: string[] = [];
-  for (const c of centers) {
-    let best: string | null = null, bd = Infinity;
-    for (let i = 0; i < keys.length; i++) {
-      if (used.has(keys[i])) continue;
-      const d = (pts[i].x - c.x) ** 2 + (pts[i].y - c.y) ** 2;
-      if (d < bd) { bd = d; best = keys[i]; }
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const tx = bb.minX + ((c + 0.5) / cols) * w;
+      const ty = bb.minY + ((r + 0.5) / rows) * h;
+      let best: string | null = null, bd = Infinity;
+      for (let i = 0; i < keys.length; i++) {
+        if (used.has(keys[i])) continue;
+        const d = (pts[i].x - tx) ** 2 + (pts[i].y - ty) ** 2;
+        if (d < bd) { bd = d; best = keys[i]; }
+      }
+      if (best != null) { used.add(best); out.push(best); }
     }
-    if (best != null) { used.add(best); out.push(best); }
   }
   return out;
 }
@@ -291,10 +283,15 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     const hexArea = (3 * SQRT3 / 2) * pitch * pitch;
     let mnX = Infinity, mnY = Infinity, mxX = -Infinity, mxY = -Infinity;
     for (const k of run.nodes) { const p = xy(k); mnX = Math.min(mnX, p.x); mnY = Math.min(mnY, p.y); mxX = Math.max(mxX, p.x); mxY = Math.max(mxY, p.y); }
-    const approxHexes = ((mxX - mnX) * (mxY - mnY)) / hexArea;
-    // ~1 cable per 2.5 hexes (density); always >=2
+    const w = mxX - mnX, h = mxY - mnY;
+    const approxHexes = (w * h) / hexArea;
+    // ~1 cable per 2.5 hexes (density); always >=2 — laid out as an even grid
     const targetN = Math.min(24, Math.max(2, Math.round(approxHexes / 2.5)));
-    for (const k of balancedAnchors(run.nodes, xy, targetN)) hangerPoints.push(marker(k));
+    const aspect = Math.max(w, 1) / Math.max(h, 1);
+    const cols = Math.max(1, Math.round(Math.sqrt(targetN * aspect)));
+    const rows = Math.max(1, Math.round(targetN / cols));
+    const bb = { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY };
+    for (const k of gridAnchors(run.nodes, xy, cols, rows, bb)) hangerPoints.push(marker(k));
   }
   const suspensionPoints = hangerPoints.length;
 
