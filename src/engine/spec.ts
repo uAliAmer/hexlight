@@ -79,6 +79,23 @@ export const USE_CASES: UseCase[] = [
 
 export const USE_CASE_BY_ID = Object.fromEntries(USE_CASES.map((u) => [u.id, u])) as Record<string, UseCase>;
 
+// LED colour temperature / RGBIC modes. lumenScale reflects the lower white
+// output of warmer phosphors and colour (RGBIC) chips.
+export interface CctOption {
+  id: string;
+  label: string;
+  color: string; // bar render colour
+  lumenScale: number;
+  rgbic?: boolean;
+}
+export const CCT_OPTIONS: CctOption[] = [
+  { id: "6500", label: "6500K Cool", color: "#f1f6ff", lumenScale: 1.0 },
+  { id: "4000", label: "4000K Neutral", color: "#fff3e2", lumenScale: 0.97 },
+  { id: "3000", label: "3000K Warm", color: "#ffe1b8", lumenScale: 0.9 },
+  { id: "rgbic", label: "RGBIC", color: "#7df0ff", lumenScale: 0.75, rgbic: true },
+];
+export const CCT_BY_ID = Object.fromEntries(CCT_OPTIONS.map((c) => [c.id, c])) as Record<string, CctOption>;
+
 // Connector types (order = display/sort order). "multi" == X (4-way+).
 export type ConnectorType = "i" | "l" | "v" | "y" | "t" | "multi";
 export const CONNECTOR_ORDER: ConnectorType[] = ["i", "l", "v", "y", "t", "multi"];

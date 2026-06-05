@@ -69,6 +69,10 @@ button { font-family: inherit; cursor: pointer; }
 .tb-select:focus { outline: none; border-color: var(--accent); }
 .seg.icon button { font-size: 15px; padding: 4px 11px; line-height: 1; }
 .pill { white-space: nowrap; }
+.cct-pick { display: inline-flex; align-items: center; gap: 6px; }
+.cct-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border-hi); box-shadow: 0 0 8px #ffffff44; flex-shrink: 0; }
+.cct-swatch.rgbic { background: conic-gradient(from 0deg, #ff4d4d, #ffb030, #ffe84d, #4dff7a, #4dd2ff, #7a6bff, #ff4dd2, #ff4d4d); animation: spin 4s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .tbtn.on { border-color: var(--accent); color: var(--text-hi); }
 
 /* bar config popover */

@@ -12,7 +12,7 @@ import {
   pixelToHex,
   setOrientation,
 } from "./engine/geometry";
-import { BarConfig, defaultBarConfig, SYSTEM_BY_ID } from "./engine/spec";
+import { BarConfig, CCT_BY_ID, defaultBarConfig, SYSTEM_BY_ID } from "./engine/spec";
 import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
 import { TEMPLATE_BY_ID } from "./engine/templates";
@@ -104,6 +104,7 @@ export function useEditor() {
   const [lineSystem, setLineSystem] = useState<string>("line1176");
   const [orientation, setOrient] = useState<Orientation>("pointy");
   const [units, setUnits] = useState<"m" | "cm">("m");
+  const [cctId, setCctId] = useState<string>("6500");
   const [layoutName, setLayoutName] = useState<string>("Untitled layout");
   const [barConfig, setBarConfig] = useState<BarConfig>(defaultBarConfig());
   const [view, setView] = useState<View>({ scale: 0.18, tx: 0, ty: 0 });
@@ -127,9 +128,10 @@ export function useEditor() {
 
   // cluster extent (m) for auto-drop, from bom-less quick bounds
   const clusterExtentM = useMemo(() => extentM(doc), [doc, orientation]);
+  const lumenScale = CCT_BY_ID[cctId].lumenScale;
   const luxResult = useMemo(
-    () => computeLux(doc, { ...lux, clusterExtentM }, barConfig),
-    [doc, lux, clusterExtentM, orientation, barConfig],
+    () => computeLux(doc, { ...lux, clusterExtentM, lumenScale }, barConfig),
+    [doc, lux, clusterExtentM, orientation, barConfig, lumenScale],
   );
 
   const placeAt = useCallback(
@@ -172,6 +174,8 @@ export function useEditor() {
     toggleOrientation,
     units,
     setUnits,
+    cctId,
+    setCctId,
     layoutName,
     setLayoutName,
     barConfig,

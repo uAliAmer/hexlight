@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Editor } from "../store";
-import { COLORS, SYSTEMS } from "../engine/spec";
+import { CCT_BY_ID, CCT_OPTIONS, COLORS, SYSTEMS } from "../engine/spec";
 import { TEMPLATES } from "../engine/templates";
 import BarConfig from "./BarConfig";
 
@@ -65,6 +65,14 @@ export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => 
         <div className="seg">
           <button className={ed.units === "m" ? "active" : ""} onClick={() => ed.setUnits("m")}>m</button>
           <button className={ed.units === "cm" ? "active" : ""} onClick={() => ed.setUnits("cm")}>cm</button>
+        </div>
+
+        <div className="cct-pick">
+          <span className={`cct-swatch ${CCT_BY_ID[ed.cctId]?.rgbic ? "rgbic" : ""}`}
+            style={{ background: CCT_BY_ID[ed.cctId]?.rgbic ? undefined : CCT_BY_ID[ed.cctId]?.color }} />
+          <select className="tb-select" value={ed.cctId} onChange={(e) => ed.setCctId(e.target.value)} title="LED colour">
+            {CCT_OPTIONS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
         </div>
 
         <input

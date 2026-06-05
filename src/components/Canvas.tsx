@@ -10,7 +10,7 @@ import {
   nearestLineEdge,
 } from "../engine/geometry";
 import { nodeInfos } from "../engine/bom";
-import { COLORS, SYSTEM_BY_ID } from "../engine/spec";
+import { CCT_BY_ID, COLORS, SYSTEM_BY_ID } from "../engine/spec";
 
 interface P {
   ed: Editor;
@@ -215,6 +215,10 @@ export default function Canvas({ ed }: P) {
   // bar thickness in px from a fixed mm width, clamped
   const barPx = Math.max(3, Math.min(14, 26 * view.scale));
 
+  // LED colour from the selected CCT / RGBIC mode
+  const cct = CCT_BY_ID[ed.cctId] ?? CCT_BY_ID["6500"];
+  const ledStroke = cct.rgbic ? "url(#rgbic)" : cct.color;
+
   return (
     <div ref={wrapRef} className="canvas-wrap" onWheel={onWheel}>
       <svg
@@ -238,6 +242,16 @@ export default function Canvas({ ed }: P) {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          <linearGradient id="rgbic" x1="0" y1="0" x2="320" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+            <stop offset="0" stopColor="#ff4d4d" />
+            <stop offset="0.17" stopColor="#ffb030" />
+            <stop offset="0.34" stopColor="#ffe84d" />
+            <stop offset="0.5" stopColor="#4dff7a" />
+            <stop offset="0.67" stopColor="#4dd2ff" />
+            <stop offset="0.84" stopColor="#7a6bff" />
+            <stop offset="1" stopColor="#ff4dd2" />
+            <animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="320 0" dur="6s" repeatCount="indefinite" />
+          </linearGradient>
         </defs>
 
         <BackdropGrid size={size} view={view} hexSystem={ed.hexSystem} lineSystem={ed.lineSystem} mode={ed.mode} sx={sx} sy={sy} />
@@ -264,7 +278,7 @@ export default function Canvas({ ed }: P) {
             return (
               <line key={e.key}
                 x1={sx(ax)} y1={sy(ay)} x2={sx(bx)} y2={sy(by)}
-                stroke={COLORS.led} strokeWidth={barPx} strokeLinecap="round"
+                stroke={ledStroke} strokeWidth={barPx} strokeLinecap="round"
               />
             );
           })}

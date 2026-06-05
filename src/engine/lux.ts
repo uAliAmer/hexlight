@@ -24,6 +24,7 @@ export interface LuxInput {
   mountingMode: MountingMode;
   dropM: number; // suspension drop (suspended mode)
   clusterExtentM: number; // largest layout dimension, for auto drop
+  lumenScale?: number; // CCT/RGBIC white-output multiplier
 }
 
 export interface LuxResult {
@@ -91,7 +92,7 @@ export function computeLux(doc: Doc, input: LuxInput, config: BarConfig = defaul
     return { ...base, errorMessage: "Mounting height conflicts with ceiling." };
   }
 
-  const lm = totalLumens(doc, config);
+  const lm = totalLumens(doc, config) * (input.lumenScale ?? 1);
   const W = input.roomWidthM;
   const L = input.roomHeightM;
   const area = W * L;
