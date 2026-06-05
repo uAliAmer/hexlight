@@ -76,11 +76,11 @@ export interface Bom {
   suspensionPoints: number; // cables for suspended mounting: one per junction + free end
 }
 
-// Connected components of active edges -> each is a power run.
-function powerRuns(g: Graph, wattsPerBar: Record<BarLength, number>): { watts: number }[] {
+// Connected components of active edges -> each is a power run (with its nodes).
+function powerRuns(g: Graph, wattsPerBar: Record<BarLength, number>): { watts: number; nodes: string[] }[] {
   const adj = adjacency(g);
   const seen = new Set<string>();
-  const runs: { watts: number }[] = [];
+  const runs: { watts: number; nodes: string[] }[] = [];
   for (const start of g.nodes.keys()) {
     if (seen.has(start)) continue;
     if (!adj.has(start)) {
@@ -90,6 +90,7 @@ function powerRuns(g: Graph, wattsPerBar: Record<BarLength, number>): { watts: n
     // BFS over nodes; sum each edge once
     const stack = [start];
     seen.add(start);
+    const nodes: string[] = [start];
     const edgeSeen = new Set<string>();
     let watts = 0;
     while (stack.length) {
@@ -101,14 +102,23 @@ function powerRuns(g: Graph, wattsPerBar: Record<BarLength, number>): { watts: n
         }
         if (!seen.has(nbr)) {
           seen.add(nbr);
+          nodes.push(nbr);
           stack.push(nbr);
         }
       }
     }
-    if (edgeSeen.size > 0) runs.push({ watts });
+    if (edgeSeen.size > 0) runs.push({ watts, nodes });
   }
   return runs;
 }
+
+// A power cord needs a free port. A bar end (degree 1) is already open; a fully
+// used connector is not. So per power input with no open end available, one
+// connector in that run gets upgraded by one port (V->Y, I/L->T, Y/T->X).
+const PORT_UPGRADE: Partial<Record<ConnectorType, ConnectorType>> = {
+  v: "y", l: "t", i: "t", y: "multi", t: "multi",
+};
+const UPGRADE_PREFERENCE: ConnectorType[] = ["v", "l", "i", "y", "t"]; // 2-way first
 
 export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgbic = false): Bom {
   const g = buildGraph(doc);
@@ -132,24 +142,51 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
   );
 
   // connectors + suspension points (anchor at every junction ≥3 and free end =1)
+  const infos = nodeInfos(g);
   const counts = new Map<ConnectorType, number>();
   let suspensionPoints = 0;
-  for (const info of nodeInfos(g).values()) {
+  for (const info of infos.values()) {
     const deg = info.dirs.length;
     if (deg === 1 || deg >= 3) suspensionPoints++;
     if (!info.type) continue;
     counts.set(info.type, (counts.get(info.type) ?? 0) + 1);
   }
   if (suspensionPoints < 2 && g.edges.size > 0) suspensionPoints = 2; // a bar needs both ends held
+
+  // power runs + power-cord ports: each cord needs one free port. Open bar ends
+  // (degree 1) are free; otherwise upgrade one connector in that run by a port.
+  const runs = powerRuns(g, config.wattsPerBar);
+  const totalWatts = runs.reduce((a, r) => a + r.watts, 0);
+  let powerInputs = 0;
+  for (const run of runs) {
+    const inputs = Math.max(1, Math.ceil(run.watts / MAX_WATTS_PER_RUN));
+    powerInputs += inputs;
+    const openEnds = run.nodes.filter((k) => (infos.get(k)?.dirs.length ?? 0) === 1).length;
+    let deficit = Math.max(0, inputs - openEnds);
+    if (deficit === 0) continue;
+    // connector types available to upgrade within this run
+    const local = new Map<ConnectorType, number>();
+    for (const k of run.nodes) {
+      const t = infos.get(k)?.type;
+      if (t) local.set(t, (local.get(t) ?? 0) + 1);
+    }
+    for (const from of UPGRADE_PREFERENCE) {
+      const to = PORT_UPGRADE[from];
+      if (!to) continue;
+      while (deficit > 0 && (local.get(from) ?? 0) > 0) {
+        local.set(from, local.get(from)! - 1);
+        counts.set(from, (counts.get(from) ?? 0) - 1);
+        counts.set(to, (counts.get(to) ?? 0) + 1);
+        deficit--;
+      }
+      if (deficit === 0) break;
+    }
+  }
+
   const connectorCounts = [...counts.entries()]
     .filter(([, c]) => c > 0)
     .map(([type, count]) => ({ type, count, label: type.toUpperCase() }))
     .sort((a, b) => CONNECTOR_ORDER.indexOf(a.type) - CONNECTOR_ORDER.indexOf(b.type));
-
-  // power
-  const runs = powerRuns(g, config.wattsPerBar);
-  const totalWatts = runs.reduce((a, r) => a + r.watts, 0);
-  const powerInputs = runs.reduce((a, r) => a + Math.max(1, Math.ceil(r.watts / MAX_WATTS_PER_RUN)), 0);
 
   // price in IQD — bars by white/RGBIC rate, connectors + power flat
   const totalSegments = segmentGroups.reduce((a, s) => a + s.count, 0);
