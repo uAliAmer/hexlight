@@ -29,7 +29,7 @@ const MoveIcon = () => (
   </svg>
 );
 
-export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => void }) {
+export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExport: () => void; onShare: () => void }) {
   const [cfgOpen, setCfgOpen] = useState(false);
 
   const roomLabel =
@@ -92,6 +92,7 @@ export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => 
         </div>
         <button className="tbtn" onClick={ed.clear}>تصميم جديد</button>
         <button className="tbtn" onClick={ed.clear}>مسح التصميم</button>
+        <button className="tbtn" onClick={onShare}>⤴ مشاركة</button>
         <button className="tbtn primary" onClick={onExport}>تصدير PDF</button>
       </div>
 

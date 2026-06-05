@@ -13,6 +13,7 @@ import {
   setOrientation,
 } from "./engine/geometry";
 import { BarConfig, CCT_BY_ID, defaultBarConfig, SYSTEM_BY_ID } from "./engine/spec";
+import { SharePayload, compactToDoc, docToCompact } from "./engine/share";
 import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
 import { TEMPLATE_BY_ID } from "./engine/templates";
@@ -164,6 +165,31 @@ export function useEditor() {
     dispatch({ t: "translate", dx, dy });
   }, []);
 
+  // --- share / restore ---
+  const buildSharePayload = useCallback((): SharePayload => {
+    const { h, l } = docToCompact(doc);
+    return {
+      v: 1, name: layoutName, orient: orientation, hex: hexSystem, line: lineSystem, cct: cctId,
+      h, l,
+      lux: { u: lux.useCaseId, w: lux.roomWidthM, d: lux.roomHeightM, c: lux.ceilingHeightM, m: lux.mountingMode, dr: lux.dropM },
+    };
+  }, [doc, layoutName, orientation, hexSystem, lineSystem, cctId, lux]);
+
+  const applyShared = useCallback((p: SharePayload) => {
+    setOrientation(p.orient);
+    setOrient(p.orient);
+    setHexSystem(p.hex);
+    setLineSystem(p.line);
+    setCctId(p.cct);
+    if (p.name) setLayoutName(p.name);
+    setLux((cur) => ({
+      ...cur,
+      useCaseId: p.lux.u, roomWidthM: p.lux.w, roomHeightM: p.lux.d,
+      ceilingHeightM: p.lux.c, mountingMode: p.lux.m, dropM: p.lux.dr,
+    }));
+    dispatch({ t: "set", doc: compactToDoc(p.h, p.l) });
+  }, []);
+
   const loadTemplate = useCallback((id: string) => {
     const t = TEMPLATE_BY_ID[id];
     if (!t) return;
@@ -199,6 +225,8 @@ export function useEditor() {
     bom,
     placeAt,
     translateDoc,
+    buildSharePayload,
+    applyShared,
     loadTemplate,
     clear: () => dispatch({ t: "clear" }),
     undo: () => dispatch({ t: "undo" }),

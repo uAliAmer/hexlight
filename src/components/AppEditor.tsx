@@ -1,15 +1,28 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor } from "../store";
 import { SYSTEMS } from "../engine/spec";
+import { decodeDesign } from "../engine/share";
 import Toolbar from "./Toolbar";
 import Canvas from "./Canvas";
 import Sidebar from "./Sidebar";
+import ShareModal from "./ShareModal";
 import { exportPdf } from "../engine/pdf";
 
 export default function AppEditor() {
   const ed = useEditor();
   const edRef = useRef(ed);
   edRef.current = ed;
+  const [share, setShare] = useState(false);
+
+  // restore a shared design from the URL fragment (#/app?d=...)
+  useEffect(() => {
+    const m = window.location.hash.match(/[?&]d=([^&]+)/);
+    if (!m) return;
+    const payload = decodeDesign(m[1]);
+    if (payload) edRef.current.applyShared(payload);
+    // strip the param so edits don't keep re-applying / keep URL clean
+    history.replaceState(null, "", `${location.pathname}#/app`);
+  }, []);
 
   // global keyboard shortcuts
   useEffect(() => {
@@ -44,11 +57,16 @@ export default function AppEditor() {
 
   return (
     <div className="app">
-      <Toolbar ed={ed} onExport={() => { void exportPdf(ed.doc, ed.lux, 1, ed.barConfig, ed.layoutName, ed.cctId); }} />
+      <Toolbar
+        ed={ed}
+        onExport={() => { void exportPdf(ed.doc, ed.lux, 1, ed.barConfig, ed.layoutName, ed.cctId); }}
+        onShare={() => setShare(true)}
+      />
       <div className="workspace">
         <Canvas ed={ed} />
         <Sidebar ed={ed} />
       </div>
+      {share && <ShareModal ed={ed} onClose={() => setShare(false)} />}
     </div>
   );
 }
