@@ -8,11 +8,12 @@ import {
   hexVertices,
   lineActionAt,
   nearestLineHit,
+  pitchMm,
   pixelToHex,
   proposeLine,
 } from "../engine/geometry";
 import { nodeInfos } from "../engine/bom";
-import { CCT_BY_ID, COLORS, SYSTEM_BY_ID } from "../engine/spec";
+import { CCT_BY_ID, COLORS } from "../engine/spec";
 
 interface P {
   ed: Editor;
@@ -426,7 +427,7 @@ function BackdropGrid({
   const w1y = (size.h - view.ty) / view.scale;
 
   // --- ghost hexagon placeholders (always shown, orientation-aware) ---
-  const R = SYSTEM_BY_ID[hexSystem].segmentLength;
+  const R = pitchMm(hexSystem);
   const pad = R;
   const cells: JSX.Element[] = [];
   const MAX_CELLS = 3000;
@@ -457,7 +458,7 @@ function BackdropGrid({
   // --- line lattice dots (only in lines mode) ---
   const dots: JSX.Element[] = [];
   if (mode === "lines") {
-    const L = SYSTEM_BY_ID[lineSystem].segmentLength;
+    const L = pitchMm(lineSystem);
     if (L * view.scale >= 12) {
       const lp = L;
       const i0 = Math.floor((w0x - lp) / L), i1 = Math.ceil((w1x + lp) / L);

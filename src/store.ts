@@ -9,10 +9,11 @@ import {
   hexId,
   lineActionAt,
   lineId,
+  pitchMm,
   pixelToHex,
   setOrientation,
 } from "./engine/geometry";
-import { BarConfig, CCT_BY_ID, defaultBarConfig, SYSTEM_BY_ID } from "./engine/spec";
+import { BarConfig, CCT_BY_ID, defaultBarConfig } from "./engine/spec";
 import { ShareInput, ShareOutput } from "./engine/share";
 import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
@@ -254,7 +255,7 @@ function translateDoc(doc: Doc, dx: number, dy: number): Doc | null {
   // lines-only: snap to bar lattice
   const lineVals = Object.values(doc.lines);
   if (!lineVals.length) return null;
-  const L = SYSTEM_BY_ID[lineVals[0].systemId].segmentLength;
+  const L = pitchMm(lineVals[0].systemId);
   const sdx = Math.round(dx / L) * L, sdy = Math.round(dy / L) * L;
   if (sdx === 0 && sdy === 0) return null;
   const lines: Record<string, LineSeg> = {};
@@ -290,7 +291,7 @@ function extentM(doc: Doc): number {
   }
   // approximate hex centres via vertices is overkill here; use line + hex bounds lazily
   for (const h of Object.values(doc.hexes)) {
-    const R = SYSTEM_BY_ID[h.systemId].segmentLength;
+    const R = pitchMm(h.systemId);
     const [cx, cy] = hexCenter(h.systemId, h.q, h.r);
     pt(cx - R, cy - R);
     pt(cx + R, cy + R);

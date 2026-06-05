@@ -4,6 +4,16 @@
 
 import { SYSTEM_BY_ID } from "./spec";
 
+// Node-to-node pitch = bar tube length + a connector arm at each end.
+// The connector is the SAME radial size (arm) for every type (I/L/V/Y/T/X), so
+// the pitch only depends on the bar size, not the junction angle. Each bar end
+// backs off `arm` from the shared node along its own direction (see `shorten`
+// in the renderers), which carves the connector gap correctly at any angle.
+export const pitchMm = (systemId: string): number => {
+  const s = SYSTEM_BY_ID[systemId];
+  return s.segmentLength + 2 * s.barEndToConnectorCenterMm;
+};
+
 export interface HexCell {
   id: string; // `${systemId}:${q}:${r}`
   systemId: string;
@@ -60,7 +70,7 @@ export const setOrientation = (o: Orientation) => { ORIENT = o; };
 export const getOrientation = (): Orientation => ORIENT;
 
 export function hexCenter(systemId: string, q: number, r: number): [number, number] {
-  const R = SYSTEM_BY_ID[systemId].segmentLength;
+  const R = pitchMm(systemId);
   if (ORIENT === "pointy") {
     return [R * SQRT3 * (q + r / 2), R * 1.5 * r];
   }
@@ -68,7 +78,7 @@ export function hexCenter(systemId: string, q: number, r: number): [number, numb
 }
 
 export function hexVertices(systemId: string, q: number, r: number): [number, number][] {
-  const R = SYSTEM_BY_ID[systemId].segmentLength;
+  const R = pitchMm(systemId);
   const [cx, cy] = hexCenter(systemId, q, r);
   // pointy-top: corner straight up (-90 + 60k). flat-top: corner at 0 + 60k.
   const off = ORIENT === "pointy" ? -90 : 0;
@@ -82,7 +92,7 @@ export function hexVertices(systemId: string, q: number, r: number): [number, nu
 
 // Pixel -> nearest hex cell (axial) for a given system, using cube rounding.
 export function pixelToHex(systemId: string, x: number, y: number): [number, number] {
-  const R = SYSTEM_BY_ID[systemId].segmentLength;
+  const R = pitchMm(systemId);
   let q: number, r: number;
   if (ORIENT === "pointy") {
     q = ((SQRT3 / 3) * x - (1 / 3) * y) / R;
@@ -114,7 +124,7 @@ export const hexId = (systemId: string, q: number, r: number) => `${systemId}:${
 
 // --- line grid (square lattice, spacing = bar length) ---
 export function snapLinePoint(systemId: string, x: number, y: number): [number, number] {
-  const L = SYSTEM_BY_ID[systemId].segmentLength;
+  const L = pitchMm(systemId);
   return [Math.round(x / L) * L, Math.round(y / L) * L];
 }
 
@@ -122,7 +132,7 @@ export function snapLinePoint(systemId: string, x: number, y: number): [number, 
 // nearest 45° direction toward the cursor. Axis dirs stay on the square grid;
 // diagonals are unit-length (off-grid) so the bar is always exactly one length.
 export function nearestLineEdge(systemId: string, x: number, y: number): LineSeg {
-  const L = SYSTEM_BY_ID[systemId].segmentLength;
+  const L = pitchMm(systemId);
   const ax = Math.round(x / L) * L; // anchor node
   const ay = Math.round(y / L) * L;
   let dx = x - ax,
@@ -195,7 +205,7 @@ export interface LineProposal {
 // the nearest 45° direction; snap the far end onto a nearby existing node so
 // diagonals chain. Returns whether the placement is legal.
 export function proposeLine(doc: Doc, systemId: string, x: number, y: number): LineProposal {
-  const L = SYSTEM_BY_ID[systemId].segmentLength;
+  const L = pitchMm(systemId);
   const g = buildGraph(doc);
 
   // anchor: prefer a real node near the cursor so bars connect to the structure;
@@ -240,7 +250,7 @@ export function nearestLineHit(doc: Doc, x: number, y: number): string | null {
   let best: string | null = null, bd = Infinity;
   for (const l of Object.values(doc.lines)) {
     const d = pointSegDist(x, y, l.ax, l.ay, l.bx, l.by);
-    const tol = SYSTEM_BY_ID[l.systemId].segmentLength * 0.22;
+    const tol = pitchMm(l.systemId) * 0.22;
     if (d < tol && d < bd) { bd = d; best = l.id; }
   }
   return best;
