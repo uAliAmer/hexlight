@@ -99,14 +99,14 @@ export default function Toolbar({ ed, onExport }: { ed: Editor; onExport: () => 
           <>
             <span className="tb-label">Line bars</span>
             <select className="tb-select" value={ed.lineSystem} onChange={(e) => ed.setLineSystem(e.target.value)}>
-              {SYSTEMS.filter((s) => s.id.startsWith("line")).map((s) => <option key={s.id} value={s.id}>{s.segmentLength}mm</option>)}
+              {SYSTEMS.map((s) => <option key={s.id} value={s.id}>{s.segmentLength}mm</option>)}
             </select>
           </>
         ) : (
           <>
             <span className="tb-label">Hex bars</span>
             <select className="tb-select" value={ed.hexSystem} onChange={(e) => ed.setHexSystem(e.target.value)}>
-              {SYSTEMS.filter((s) => s.id.startsWith("hex")).map((s) => <option key={s.id} value={s.id}>{s.segmentLength}mm</option>)}
+              {SYSTEMS.map((s) => <option key={s.id} value={s.id}>{s.segmentLength}mm</option>)}
             </select>
           </>
         )}

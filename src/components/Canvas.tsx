@@ -202,7 +202,7 @@ export default function Canvas({ ed }: P) {
       const pts = v.map(([x, y]) => `${sx(x)},${sy(y)}`).join(" ");
       preview = <polygon points={pts} fill={COLORS.accentDim} stroke={COLORS.accent} strokeWidth={1.5} strokeDasharray="4 4" />;
     } else {
-      const seg = nearestLineEdge("line1176", hover.x, hover.y);
+      const seg = nearestLineEdge(ed.lineSystem, hover.x, hover.y);
       preview = (
         <line
           x1={sx(seg.ax)} y1={sy(seg.ay)} x2={sx(seg.bx)} y2={sy(seg.by)}
