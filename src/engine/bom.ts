@@ -58,19 +58,24 @@ export interface Point { x: number; y: number }
 // bars there — so the icon can be offset off the tubes with a short leader.
 export interface MarkerPoint { x: number; y: number; dx: number; dy: number }
 
-// direction bisecting the largest angular gap between bars at a node
-function openDir(dirs: { x: number; y: number }[]): { dx: number; dy: number } {
-  if (dirs.length === 0) return { dx: 0, dy: -1 };
-  if (dirs.length === 1) return { dx: -dirs[0].x, dy: -dirs[0].y };
+// directions bisecting the angular gaps between bars at a node, widest first.
+// Used to offset markers into open space; a second marker on the same node can
+// take the runner-up gap so the two don't overlap.
+function gapDirs(dirs: { x: number; y: number }[]): { dx: number; dy: number }[] {
+  if (dirs.length === 0) return [{ dx: 0, dy: -1 }, { dx: 1, dy: 0 }];
+  if (dirs.length === 1) {
+    const d = dirs[0];
+    return [{ dx: -d.x, dy: -d.y }, { dx: -d.y, dy: d.x }]; // opposite, then perpendicular
+  }
   const angs = dirs.map((d) => Math.atan2(d.y, d.x)).sort((a, b) => a - b);
-  let bestMid = 0, bestGap = -1;
+  const gaps: { mid: number; size: number }[] = [];
   for (let i = 0; i < angs.length; i++) {
     const a = angs[i];
     const b = i + 1 < angs.length ? angs[i + 1] : angs[0] + Math.PI * 2;
-    const gap = b - a;
-    if (gap > bestGap) { bestGap = gap; bestMid = a + gap / 2; }
+    gaps.push({ mid: a + (b - a) / 2, size: b - a });
   }
-  return { dx: Math.cos(bestMid), dy: Math.sin(bestMid) };
+  gaps.sort((x, y) => y.size - x.size);
+  return gaps.map((g) => ({ dx: Math.cos(g.mid), dy: Math.sin(g.mid) }));
 }
 
 export interface SegmentGroup {
@@ -237,11 +242,13 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     if (info.type) counts.set(info.type, (counts.get(info.type) ?? 0) + 1);
   }
   const xy = (k: string): Point => ({ x: infos.get(k)!.x, y: infos.get(k)!.y });
-  const marker = (k: string): MarkerPoint => {
+  const marker = (k: string, rank = 0): MarkerPoint => {
     const info = infos.get(k)!;
-    const o = openDir(info.dirs);
+    const dirs = gapDirs(info.dirs);
+    const o = dirs[Math.min(rank, dirs.length - 1)];
     return { x: info.x, y: info.y, dx: o.dx, dy: o.dy };
   };
+  const powerKeys = new Set<string>(); // cord nodes, so a co-located hanger can dodge
 
   // power runs + power-cord ports + hangers, per connected run.
   const runs = powerRuns(g, config.wattsPerBar);
@@ -268,6 +275,7 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     if (pool.length === 0) pool = run.nodes; // pathological: fully saturated run
     const cordNodes = spreadNodes(pool, xy, inputs);
     for (const k of cordNodes) {
+      powerKeys.add(k);
       powerPoints.push(marker(k));
       const info = infos.get(k)!;
       if (deg(k) !== 1 && info.type) {
@@ -300,7 +308,7 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     const cols = Math.max(1, Math.round(Math.sqrt(targetN * aspect)));
     const rows = Math.max(1, Math.round(targetN / cols));
     const bb = { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY };
-    for (const k of gridAnchors(run.nodes, xy, cols, rows, bb)) hangerPoints.push(marker(k));
+    for (const k of gridAnchors(run.nodes, xy, cols, rows, bb)) hangerPoints.push(marker(k, powerKeys.has(k) ? 1 : 0));
   }
   const suspensionPoints = hangerPoints.length;
 
