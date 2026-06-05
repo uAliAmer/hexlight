@@ -451,6 +451,14 @@ body { font-size: 16px; line-height: 1.5; }
 .sidebar-footer { font-size: 13px; padding: 10px 16px; }
 .beta { font-size: 11px; }
 
+/* total load line above the BOM table */
+.bom-load {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 14px; color: var(--muted); margin-bottom: 8px;
+  padding: 7px 11px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+}
+.bom-load span:last-child { color: var(--text-hi); font-weight: 700; font-variant-numeric: tabular-nums; }
+
 /* BOM — bordered, Excel-style table */
 .bom-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border-hi); border-radius: 8px; overflow: hidden; }
 .bom-table th, .bom-table td { border: 1px solid var(--border); padding: 7px 11px; font-size: 14px; }

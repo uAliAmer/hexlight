@@ -10,6 +10,10 @@ export default function Sidebar({ ed }: { ed: Editor }) {
     <aside className="sidebar">
       {/* BOM */}
       <Section title="قائمة المواد">
+        <div className="bom-load">
+          <span>إجمالي الحمل</span>
+          <span>{bom.power.totalWatts} واط</span>
+        </div>
         <table className="bom-table">
           <thead>
             <tr><th>المادة</th><th className="bt-v">العدد</th></tr>
@@ -33,10 +37,13 @@ export default function Sidebar({ ed }: { ed: Editor }) {
 
             <tr className="bt-head"><td colSpan={2}>الطاقة</td></tr>
             <tr><td>مداخل الطاقة</td><td className="bt-v accent">{bom.power.powerInputs}</td></tr>
+
             {lux.mountingMode === "suspended" && (
-              <tr><td>أسلاك التعليق</td><td className="bt-v">{bom.suspensionPoints}</td></tr>
+              <>
+                <tr className="bt-head"><td colSpan={2}>اكسسوارات</td></tr>
+                <tr><td>أسلاك التعليق</td><td className="bt-v">{bom.suspensionPoints}</td></tr>
+              </>
             )}
-            <tr><td>إجمالي الحمل</td><td className="bt-v">{bom.power.totalWatts} واط</td></tr>
           </tbody>
           <tfoot>
             <tr className="bt-total"><td>السعر التقديري</td><td className="bt-v">{bom.estimatedPrice.toLocaleString("en-US")} د.ع</td></tr>
