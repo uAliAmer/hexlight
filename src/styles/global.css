@@ -446,8 +446,10 @@ body { font-size: 16px; line-height: 1.5; }
 .bom-block { margin-bottom: 9px; }
 .bom-total { font-size: 21px; margin-top: 4px; padding-top: 8px; }
 .hint { font-size: 14px; }
-.field { font-size: 14px; margin-bottom: 8px; }
-.field select, .field input, .room-input { font-size: 16px; padding: 9px 10px; }
+.field { font-size: 13px; gap: 3px; margin-bottom: 6px; }
+.field select, .field input, .room-input { font-size: 15px; padding: 7px 10px; min-height: 38px; }
+.rsd-row { gap: 8px; }
+.seg.small button { min-height: 34px; padding: 6px 10px; }
 .sidebar-footer { font-size: 13px; padding: 10px 16px; }
 .beta { font-size: 11px; }
 
@@ -478,15 +480,15 @@ body { font-size: 16px; line-height: 1.5; }
 .bom-table tfoot .bt-total td { background: var(--surface); font-size: 16px; font-weight: 700; color: var(--text-hi); }
 .bom-table tfoot .bt-total .bt-v { color: var(--amber); }
 
-/* light-check readout — tighter vertical rhythm */
-.lc { margin-top: 4px; }
-.lc-big { font-size: 44px; }
-.lc-tilde { font-size: 26px; }
-.lc-unit { font-size: 18px; }
-.lc-gauge { height: 30px; margin: 12px 0 10px; }
-.lc-msg { font-size: 15px; margin-top: 2px; }
-.lc-note, .lc-drop, .err { font-size: 13px; }
-.lc-note { margin-top: 12px; }
+/* light-check readout — compact vertical rhythm */
+.lc { margin-top: 2px; }
+.lc-big { font-size: 34px; }
+.lc-tilde { font-size: 20px; vertical-align: 3px; }
+.lc-unit { font-size: 15px; margin-inline-start: 6px; }
+.lc-gauge { height: 22px; margin: 8px 0; }
+.lc-msg { font-size: 14px; line-height: 1.35; margin-top: 2px; }
+.lc-note, .lc-drop, .err { font-size: 12.5px; }
+.lc-note { margin-top: 8px; line-height: 1.45; }
 
 /* bar config popover */
 .cfg-pop { width: 300px; }
