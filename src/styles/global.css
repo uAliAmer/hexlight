@@ -419,3 +419,73 @@ button { font-family: inherit; cursor: pointer; }
   .tbtn { padding: 5px 8px; }
   .tb-pencil { display: none; }
 }
+
+/* ============================================================
+   Larger, accessible UI — bigger text + comfortable tap targets
+   ============================================================ */
+body { font-size: 16px; line-height: 1.5; }
+
+/* toolbar */
+.tb-row { gap: 12px; padding: 9px 16px; }
+.brand span { font-size: 18px; }
+.tb-title { font-size: 15px; }
+.tb-label { font-size: 12px; }
+.tb-name { font-size: 16px; min-width: 150px; }
+.tb-select { font-size: 15px; padding: 9px 12px; }
+.seg button { font-size: 15px; padding: 9px 15px; }
+.seg.icon button { font-size: 18px; padding: 9px 13px; }
+.tbtn { font-size: 15px; padding: 9px 15px; }
+.cct-swatch { width: 16px; height: 16px; }
+
+/* sidebar */
+.sidebar { width: 360px; }
+.panel { padding: 16px 18px; }
+.panel-title { font-size: 15px; }
+.bom-sub { font-size: 13px; }
+.row { font-size: 15px; padding: 6px 0; }
+.bom-total { font-size: 21px; }
+.hint { font-size: 14px; }
+.field { font-size: 14px; }
+.field select, .field input, .room-input { font-size: 16px; padding: 10px; }
+.lc-msg { font-size: 16px; }
+.lc-adv summary { font-size: 15px; }
+.lc-note, .lc-drop, .err { font-size: 14px; }
+.sidebar-footer { font-size: 13px; }
+.beta { font-size: 11px; }
+
+/* bar config popover */
+.cfg-pop { width: 300px; }
+.cfg-head { font-size: 13px; }
+.cfg-row > span:first-child { font-size: 15px; }
+.cfg-num input { font-size: 15px; width: 68px; padding: 8px; }
+.cfg-num i { font-size: 13px; padding: 8px; }
+.cfg-lm { font-size: 14px; }
+.cfg-reset { font-size: 14px; }
+
+/* canvas hud + shortcuts */
+.canvas-hud { font-size: 14px; padding: 8px 12px; }
+.hud-btn { font-size: 14px; padding: 6px 12px; }
+.keys-panel { width: 300px; }
+.keys-panel h4 { font-size: 14px; }
+.keys-panel ul { font-size: 14px; }
+
+/* share modal */
+.share-modal h3 { font-size: 22px; }
+.share-hint { font-size: 15px; }
+.share-url input { font-size: 14px; padding: 10px; }
+
+/* comfortable tap targets (>=42px) for every interactive control */
+.tb-select, .tbtn, .seg button, .tb-name,
+.field select, .field input, .room-input,
+.hud-btn, .share-url input {
+  min-height: 42px;
+}
+.cfg-num input { min-height: 38px; }
+
+/* keep phone layout legible (don't shrink below ~14px) */
+@media (max-width: 760px) {
+  body { font-size: 15px; }
+  .tb-select, .tbtn, .seg button { font-size: 14px; }
+  .tb-name { font-size: 15px; }
+  .sidebar { width: 100%; }
+}
