@@ -125,18 +125,15 @@ const PORT_UPGRADE: Partial<Record<ConnectorType, ConnectorType>> = {
 
 const SQRT3 = Math.sqrt(3);
 
-// Anchor positions along one axis (web suspension protocol): inset 20% from the
-// extremes, then subdivide so no gap exceeds ~3 hexes. lo/hi = bbox bounds,
-// hexStep = centre-to-centre spacing of one hex. Returns 1 point if negligible.
-function axisPositions(lo: number, hi: number, hexStep: number): number[] {
+// n evenly-spaced anchor positions along one axis, inset 20% from the extremes
+// (web suspension protocol). One point if the extent is negligible or n<=1.
+function linInset(lo: number, hi: number, n: number, hexStep: number): number[] {
   const span = hi - lo;
-  if (span < hexStep * 0.5) return [(lo + hi) / 2];
+  if (span < hexStep * 0.5 || n <= 1) return [(lo + hi) / 2];
   const inLo = lo + 0.2 * span, inHi = hi - 0.2 * span;
-  const inner = inHi - inLo;
-  const segs = Math.max(1, Math.ceil(inner / (3 * hexStep)));
-  const pts: number[] = [];
-  for (let i = 0; i <= segs; i++) pts.push(inLo + (inner * i) / segs);
-  return pts;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) out.push(inLo + ((inHi - inLo) * i) / (n - 1));
+  return out;
 }
 
 // Spread n points across a node set: 1 -> nearest the centroid; else
@@ -225,7 +222,8 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
       }
     }
 
-    // hangers: symmetric grid (20% inset, no >3-hex span) snapped to real nodes.
+    // hangers: distributed grid per the suspension protocol — density ~1 cable
+    // per 2.5 hexes AND no span > 3 hexes, 20% inset, snapped to real nodes.
     const rs = new Set(run.nodes);
     let pSum = 0, pN = 0;
     for (const e of g.edges.values()) {
@@ -234,15 +232,25 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
       pSum += Math.hypot(a.x - b.x, a.y - b.y); pN++;
     }
     const pitch = pN ? pSum / pN : 1;
-    const hexStep = SQRT3 * pitch; // centre-to-centre of one hex
+    const hexStep = SQRT3 * pitch;              // hex centre-to-centre
+    const hexArea = (3 * SQRT3 / 2) * pitch * pitch;
     let mnX = Infinity, mnY = Infinity, mxX = -Infinity, mxY = -Infinity;
     for (const k of run.nodes) { const p = xy(k); mnX = Math.min(mnX, p.x); mnY = Math.min(mnY, p.y); mxX = Math.max(mxX, p.x); mxY = Math.max(mxY, p.y); }
-    const xs = axisPositions(mnX, mxX, hexStep), ys = axisPositions(mnY, mxY, hexStep);
+    const w = mxX - mnX, h = mxY - mnY;
+    const approxHexes = (Math.max(w, hexStep) * Math.max(h, hexStep)) / hexArea;
+    const targetN = Math.min(24, Math.max(2, Math.round(approxHexes / 2.5)));
+    // grid: density-driven count, raised if any span would exceed 3 hexes
+    const minCols = Math.max(1, Math.ceil((0.6 * w) / (3 * hexStep)) + 1);
+    const minRows = Math.max(1, Math.ceil((0.6 * h) / (3 * hexStep)) + 1);
+    const aspect = Math.max(w, hexStep) / Math.max(h, hexStep);
+    let cols = Math.max(minCols, Math.round(Math.sqrt(targetN * aspect)) || 1);
+    let rows = Math.max(minRows, Math.ceil(targetN / cols));
+    const xs = linInset(mnX, mxX, cols, hexStep), ys = linInset(mnY, mxY, rows, hexStep);
     const used = new Set<string>();
     for (const tx of xs) for (const ty of ys) {
       let best: string | null = null, bd = Infinity;
       for (const k of run.nodes) { const p = xy(k); const d = (p.x - tx) ** 2 + (p.y - ty) ** 2; if (d < bd) { bd = d; best = k; } }
-      if (best != null && Math.sqrt(bd) <= hexStep * 1.2 && !used.has(best)) { used.add(best); hangerPoints.push(xy(best)); }
+      if (best != null && Math.sqrt(bd) <= hexStep * 1.4 && !used.has(best)) { used.add(best); hangerPoints.push(xy(best)); }
     }
     if (used.size < 2 && run.nodes.length) { // fallback: two extremes
       const ks = [...run.nodes].sort((a, b) => xy(a).x + xy(a).y - (xy(b).x + xy(b).y));
