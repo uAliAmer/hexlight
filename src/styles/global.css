@@ -536,4 +536,27 @@ body { font-size: 16px; line-height: 1.5; }
   .sidebar { width: 100%; padding-top: 0; }
   /* phones: canvas sits below the bar so reserve its height */
   .canvas-wrap { margin-top: var(--tb-h, 96px); }
+
+  /* toolbar: let it scroll instead of growing very tall and crowding canvas */
+  .tb { max-height: 45vh; overflow-y: auto; }
+  .tb-row { gap: 6px; padding: 7px 10px; }
+  /* shrink controls so the same row fits more before wrapping */
+  .tb-select, .tbtn, .seg button { font-size: 13px; padding: 7px 9px; min-height: 40px; }
+  .tb-name { min-width: 110px; max-width: 160px; }
+  .canvas-wrap { min-height: 40vh; }
+  .sidebar { max-height: 54vh; }
+
+  /* landing nav: wrap + scroll its links so it never overflows the viewport */
+  .lnav { flex-wrap: wrap; gap: 8px; padding: 12px 0; }
+  .lnav-right { gap: 14px; font-size: 13px; flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* phones: simplify landing nav so the CTA always fits */
+@media (max-width: 560px) {
+  .lnav { justify-content: center; }
+  .lnav-right { width: 100%; justify-content: center; gap: 12px; }
+  .lnav-right a:not(.cta-sm):not(.nav-contact) { display: none; }
+  .hero-cta .cta, .hero-cta .cta.ghost,
+  .contact-btns .contact-btn { flex: 1 1 100%; text-align: center; justify-content: center; }
+  .final-cta { padding: 56px 16px; }
 }
