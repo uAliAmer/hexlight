@@ -86,7 +86,7 @@ export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExpor
           <button disabled={!ed.canRedo} onClick={ed.redo} title="إعادة (Ctrl+Shift+Z)">↷</button>
         </div>
         <button className="tbtn" onClick={ed.clear}>تصميم جديد</button>
-        <button className="tbtn" onClick={ed.clear}>مسح التصميم</button>
+        <button className="tbtn hide-phone" onClick={ed.clear}>مسح التصميم</button>
         <button className="tbtn" onClick={onShare}>⤴ مشاركة</button>
         <button className="tbtn primary" onClick={onExport}>تصدير PDF</button>
       </div>

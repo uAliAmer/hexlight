@@ -405,10 +405,15 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---- editor on phones / narrow ---- */
 @media (max-width: 760px) {
+  /* let the whole editor scroll vertically instead of clipping the sidebar */
+  .app { height: auto; min-height: 100dvh; overflow: visible; }
   .workspace { flex-direction: column; }
-  .canvas-wrap { flex: 1 1 auto; min-height: 46vh; }
+  /* toolbar rides in the flow at the top (sticky), no absolute overlap */
+  .tb { position: sticky; }
+  /* fixed-height canvas; sidebar takes natural height so all content is reachable */
+  .canvas-wrap { flex: 0 0 auto; height: 60vh; min-height: 0; margin-top: 0; }
   .sidebar {
-    width: 100%; flex: 0 0 auto; max-height: 46vh;
+    width: 100%; flex: 0 0 auto; max-height: none; overflow: visible;
     border-left: 0; border-top: 1px solid var(--border);
   }
   .tb-row { gap: 7px; padding: 6px 10px; }
@@ -418,6 +423,7 @@ button { font-family: inherit; cursor: pointer; }
   .tb-name { min-width: 90px; max-width: 150px; font-size: 13px; }
   .tb-select, .tbtn, .seg button { font-size: 12px; }
   .cfg-pop { width: 240px; }
+  .hide-phone { display: none; }
 }
 
 @media (max-width: 480px) {
@@ -532,23 +538,16 @@ body { font-size: 16px; line-height: 1.5; }
 /* keep phone layout legible (don't shrink below ~14px) */
 @media (max-width: 760px) {
   body { font-size: 15px; }
-  .tb-select, .tbtn, .seg button { font-size: 14px; }
   .tb-name { font-size: 15px; }
   .sidebar { width: 100%; padding-top: 0; }
-  /* phones: canvas sits below the bar so reserve its height */
-  .canvas-wrap { margin-top: var(--tb-h, 96px); }
 
-  /* toolbar: cap height + scroll so the many buttons never crowd out the canvas */
-  .tb { max-height: 38vh; overflow-y: auto; }
+  /* compact toolbar — ~15 buttons; smaller controls = fewer wrapped rows */
   .tb-row { gap: 5px; padding: 6px 8px; }
-  /* shrink controls hard — phone toolbar has ~15 buttons; smaller = fewer rows */
   .tb-select, .tbtn, .seg button, .tb-name,
   .field select, .field input, .room-input { min-height: 36px; }
   .tb-select, .tbtn, .seg button { font-size: 12.5px; padding: 6px 8px; }
   .seg.icon button { padding: 6px 9px; }
   .tb-name { min-width: 90px; max-width: 130px; font-size: 13px; padding: 5px 6px; }
-  .canvas-wrap { min-height: 42vh; }
-  .sidebar { max-height: 52vh; }
 
   /* landing nav: wrap + scroll its links so it never overflows the viewport */
   .lnav { flex-wrap: wrap; gap: 8px; padding: 12px 0; }
