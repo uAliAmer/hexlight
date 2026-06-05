@@ -301,7 +301,7 @@ function TemplatePreview({ docId, big }: { docId: string; big?: boolean }) {
         </filter>
       </defs>
       {faces.map((pts, i) => (
-        <polygon key={`f${i}`} points={pts} fill="#0e1622" stroke="none" />
+        <polygon key={`f${i}`} className="hx-face" points={pts} style={{ ["--d" as string]: `${(i % 7) * 0.04}s` }} />
       ))}
       <g filter={`url(#pg-${docId})`}>
         {[...g.edges.values()].map((e) => {
