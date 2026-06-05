@@ -1,7 +1,7 @@
 import { Editor } from "../store";
-import { CONNECTOR_LABELS, USE_CASES } from "../engine/spec";
+import { BAR_LENGTHS, BarLength, CONNECTOR_LABELS, USE_CASES } from "../engine/spec";
 import { TEMPLATES } from "../engine/templates";
-import { MountingMode } from "../engine/lux";
+import { LuxResult, MountingMode } from "../engine/lux";
 import NumField from "./NumField";
 
 export default function Sidebar({ ed }: { ed: Editor }) {
@@ -97,31 +97,73 @@ export default function Sidebar({ ed }: { ed: Editor }) {
           </Field>
         )}
 
-        <div className={`lux-readout ${lx.zone ?? ""}`}>
-          {lx.errorMessage ? (
-            <p className="err">{lx.errorMessage}</p>
-          ) : lx.luxEstimate == null ? (
-            <p className="hint">Place hexes to estimate.</p>
-          ) : (
-            <>
-              <div className="lux-big">
-                {lx.luxEstimate}<span className="lux-unit">lx</span>
-              </div>
-              <div className="lux-meta">
-                target {lx.targetLux} lx · {lx.rangeLow}–{lx.rangeHigh} lx ·{" "}
-                <b className={lx.zone ?? ""}>{lx.zone === "on" ? "on target" : lx.zone}</b>
-              </div>
-              {lx.autoDrop != null && (
-                <div className="lux-meta">auto drop {lx.autoDrop.toFixed(2)} m</div>
-              )}
-              <div className="lux-meta dim">±20% estimate (lumen method, MF 0.80)</div>
-            </>
-          )}
-        </div>
+        <LuxReadout lx={lx} ed={ed} />
       </Section>
 
       <footer className="sidebar-footer">© 2026 Hexlight · client-side estimate</footer>
     </aside>
+  );
+}
+
+function LuxReadout({ lx, ed }: { lx: LuxResult; ed: Editor }) {
+  if (lx.errorMessage) return <p className="err">{lx.errorMessage}</p>;
+  if (lx.luxEstimate == null) return <p className="hint">Place hexes to estimate.</p>;
+
+  const t = lx.targetLux;
+  const maxv = t * 2; // gauge spans 0..2× target
+  const pct = Math.max(2, Math.min(98, (lx.luxEstimate / maxv) * 100));
+  const zoneL = (lx.rangeLow / maxv) * 100;
+  const zoneW = ((lx.rangeHigh - lx.rangeLow) / maxv) * 100;
+  const label = lx.useCaseLabel;
+  const range = `${lx.rangeLow}–${lx.rangeHigh} lx range`;
+  const msg =
+    lx.zone === "on" ? `On target for ${label} (${range}).`
+    : lx.zone === "under" ? `Below target for ${label} — aim for ${range}.`
+    : `Above target for ${label} (${range}) — brighter than needed.`;
+
+  const c = ed.barConfig;
+  const setWatts = (len: BarLength, v: number) => ed.setBarConfig({ ...c, wattsPerBar: { ...c.wattsPerBar, [len]: v } });
+
+  return (
+    <div className={`lc ${lx.zone ?? ""}`}>
+      <div className="lc-big"><span className="lc-tilde">~</span>{lx.luxEstimate}<span className="lc-unit">lx</span></div>
+
+      <div className="lc-gauge">
+        <div className="lc-zone" style={{ left: `${zoneL}%`, width: `${zoneW}%` }} />
+        <div className="lc-fill" style={{ width: `${pct}%` }} />
+        <div className="lc-marker" style={{ left: `${pct}%` }} />
+        <div className="lc-arrow" style={{ left: `${pct}%` }} />
+      </div>
+
+      <p className="lc-msg">{msg}</p>
+      {lx.autoDrop != null && <p className="lc-drop">Auto drop {lx.autoDrop.toFixed(2)} m</p>}
+
+      <details className="lc-adv">
+        <summary>Advanced — bar specs</summary>
+        <div className="lc-adv-body">
+          <div className="cfg-row">
+            <span>Efficacy</span>
+            <div className="cfg-num"><NumField min={1} step={1} value={c.lmPerW} onChange={(v) => ed.setBarConfig({ ...c, lmPerW: v })} /><i>lm/W</i></div>
+          </div>
+          <div className="cfg-row">
+            <span>Driver eff.</span>
+            <div className="cfg-num"><NumField min={1} max={100} step={1} value={Math.round(c.driverEff * 100)} onChange={(v) => ed.setBarConfig({ ...c, driverEff: v / 100 })} /><i>%</i></div>
+          </div>
+          {BAR_LENGTHS.map((len) => (
+            <div className="cfg-row" key={len}>
+              <span>{len} mm</span>
+              <div className="cfg-num"><NumField min={0} step={0.5} value={c.wattsPerBar[len]} onChange={(v) => setWatts(len, v)} /><i>W</i></div>
+              <span className="cfg-lm">→ {Math.round(c.wattsPerBar[len] * c.lmPerW)} lm</span>
+            </div>
+          ))}
+        </div>
+      </details>
+
+      <p className="lc-note">
+        Estimate ±20%. Based on the lumen method with typical room reflectances and 0.80 maintenance factor.
+        Not a substitute for a photometric simulation.
+      </p>
+    </div>
   );
 }
 
