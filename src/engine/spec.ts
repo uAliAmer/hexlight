@@ -12,12 +12,13 @@ export interface SystemSpec {
   pricePerSegment: number;
   pricePerConnector: number;
   pricePerPowerSupply: number;
+  rgbicOnly?: boolean; // size only offered in RGBIC colour mode
 }
 
 // Standard T5 integrated LED battens — actual lengths (nominal cm as label,
 // measured incl. pins so ~5cm shorter than nominal).
 export const SYSTEMS: SystemSpec[] = [
-  { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 8.9, pricePerSegment: 15, pricePerConnector: 5, pricePerPowerSupply: 49 },
+  { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 8.9, pricePerSegment: 15, pricePerConnector: 5, pricePerPowerSupply: 49, rgbicOnly: true },
   { id: "t5_45", label: "45cm", segmentLength: 425, barEndToConnectorCenterMm: 8.9, pricePerSegment: 20, pricePerConnector: 5, pricePerPowerSupply: 49 },
   { id: "t5_60", label: "60cm", segmentLength: 548.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 25, pricePerConnector: 6, pricePerPowerSupply: 59 },
   { id: "t5_90", label: "90cm", segmentLength: 848.8, barEndToConnectorCenterMm: 8.9, pricePerSegment: 35, pricePerConnector: 7, pricePerPowerSupply: 69 },

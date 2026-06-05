@@ -116,6 +116,16 @@ export function useEditor() {
   // (landing previews mutate it as a side effect)
   setOrientation(orientation);
 
+  // 30cm bar is RGBIC-only: selecting it forces the colour to RGBIC
+  const selectHex = useCallback((id: string) => {
+    setHexSystem(id);
+    if (id === "t5_30") setCctId("rgbic");
+  }, []);
+  const selectLine = useCallback((id: string) => {
+    setLineSystem(id);
+    if (id === "t5_30") setCctId("rgbic");
+  }, []);
+
   const toggleOrientation = useCallback(() => {
     setOrient((o) => {
       const next = o === "pointy" ? "flat" : "pointy";
@@ -167,9 +177,9 @@ export function useEditor() {
     mode,
     setMode,
     hexSystem,
-    setHexSystem,
+    setHexSystem: selectHex,
     lineSystem,
-    setLineSystem,
+    setLineSystem: selectLine,
     activeSystem,
     orientation,
     toggleOrientation,
