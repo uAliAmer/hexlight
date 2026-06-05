@@ -32,11 +32,6 @@ const MoveIcon = () => (
 export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExport: () => void; onShare: () => void }) {
   const [cfgOpen, setCfgOpen] = useState(false);
 
-  const roomLabel =
-    ed.units === "cm"
-      ? `${Math.round(ed.lux.roomWidthM * 100)} × ${Math.round(ed.lux.roomHeightM * 100)} سم`
-      : `${ed.lux.roomWidthM} × ${ed.lux.roomHeightM} م`;
-
   return (
     <div className="tb">
       {/* ---- row 1 ---- */}
@@ -126,8 +121,6 @@ export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExpor
         </div>
 
         <div className="spacer" />
-
-        <button className="tbtn pill" title="حجم الغرفة — يُضبط في فحص الإضاءة">▭ {roomLabel}</button>
       </div>
     </div>
   );
