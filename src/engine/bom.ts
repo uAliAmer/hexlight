@@ -73,6 +73,7 @@ export interface Bom {
   estimatedPrice: number;
   totalSegments: number;
   totalConnectors: number;
+  suspensionPoints: number; // cables for suspended mounting: one per junction + free end
 }
 
 // Connected components of active edges -> each is a power run.
@@ -130,12 +131,16 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     (a, b) => a.segmentLengthMm - b.segmentLengthMm,
   );
 
-  // connectors
+  // connectors + suspension points (anchor at every junction ≥3 and free end =1)
   const counts = new Map<ConnectorType, number>();
+  let suspensionPoints = 0;
   for (const info of nodeInfos(g).values()) {
+    const deg = info.dirs.length;
+    if (deg === 1 || deg >= 3) suspensionPoints++;
     if (!info.type) continue;
     counts.set(info.type, (counts.get(info.type) ?? 0) + 1);
   }
+  if (suspensionPoints < 2 && g.edges.size > 0) suspensionPoints = 2; // a bar needs both ends held
   const connectorCounts = [...counts.entries()]
     .filter(([, c]) => c > 0)
     .map(([type, count]) => ({ type, count, label: type.toUpperCase() }))
@@ -161,5 +166,6 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
     estimatedPrice,
     totalSegments,
     totalConnectors,
+    suspensionPoints,
   };
 }

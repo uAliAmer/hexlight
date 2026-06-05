@@ -29,8 +29,10 @@ export default function Sidebar({ ed }: { ed: Editor }) {
         <div className="bom-block">
           <div className="bom-sub">الطاقة</div>
           <Row label="إجمالي الحمل" value={`${bom.power.totalWatts} واط`} />
-          <Row label="السلاسل" value={bom.power.runs} />
           <Row label="مداخل الطاقة" value={bom.power.powerInputs} accent />
+          {lux.mountingMode === "suspended" && (
+            <Row label="أسلاك التعليق" value={bom.suspensionPoints} />
+          )}
         </div>
 
         <div className="bom-total">

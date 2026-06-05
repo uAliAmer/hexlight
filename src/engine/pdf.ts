@@ -114,8 +114,10 @@ export async function exportPdf(
       <div style="font-size:12px;color:#7a8aa0;margin-bottom:6px">الطاقة وفحص الإضاءة</div>
       ${table([
         ["إجمالي الحمل", `${bom.power.totalWatts} واط`],
-        ["السلاسل", bom.power.runs],
         ["مداخل الطاقة (≤420 واط لكل مدخل)", bom.power.powerInputs],
+        ...(lux.mountingMode === "suspended"
+          ? ([["أسلاك التعليق", bom.suspensionPoints]] as [string, number][])
+          : []),
         ["الهدف", `${lx.targetLux} لكس`],
         ["التقدير", luxLine],
       ])}
