@@ -107,7 +107,7 @@ export function useEditor() {
   const [orientation, setOrient] = useState<Orientation>("pointy");
   const [units, setUnits] = useState<"m" | "cm">("m");
   const [cctId, setCctId] = useState<string>("6500");
-  const [layoutName, setLayoutName] = useState<string>("Untitled layout");
+  const [layoutName, setLayoutName] = useState<string>("تصميم جديد");
   const [barConfig, setBarConfig] = useState<BarConfig>(defaultBarConfig());
   const [view, setView] = useState<View>({ scale: 0.18, tx: 0, ty: 0 });
   const [lux, setLux] = useState<LuxInput>(defaultLux());
