@@ -451,6 +451,23 @@ body { font-size: 16px; line-height: 1.5; }
 .sidebar-footer { font-size: 13px; padding: 10px 16px; }
 .beta { font-size: 11px; }
 
+/* BOM as a compact table */
+.bom-table { width: 100%; border-collapse: collapse; }
+.bom-table td { padding: 3px 0; font-size: 15px; color: var(--text); }
+.bom-table .bt-v { text-align: left; color: var(--text-hi); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bom-table .bt-v.accent { color: var(--amber); font-weight: 600; }
+.bom-table .bt-head td {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+  padding: 9px 0 2px; border-bottom: 1px solid var(--border);
+}
+.bom-table tbody tr:first-child .bt-head td, .bom-table .bt-head:first-child td { padding-top: 0; }
+.bom-table .bt-hint { color: var(--muted); font-size: 13px; }
+.bom-table .bt-total td {
+  font-size: 17px; font-weight: 700; color: var(--text-hi);
+  padding-top: 9px; border-top: 1px solid var(--border-hi);
+}
+.bom-table .bt-total .bt-v { color: var(--text-hi); }
+
 /* light-check readout — tighter vertical rhythm */
 .lc { margin-top: 4px; }
 .lc-big { font-size: 44px; }

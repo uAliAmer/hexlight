@@ -10,35 +10,35 @@ export default function Sidebar({ ed }: { ed: Editor }) {
     <aside className="sidebar">
       {/* BOM */}
       <Section title="قائمة المواد">
-        <div className="bom-block">
-          <div className="bom-sub">أضلع</div>
-          {bom.segmentGroups.length === 0 && <p className="hint">ضع الأشكال السداسية لإنشاء القائمة.</p>}
-          {bom.segmentGroups.map((s) => (
-            <Row key={s.systemId} label={`ضلع ${s.label}`} value={s.count} />
-          ))}
-        </div>
+        <table className="bom-table">
+          <tbody>
+            <tr className="bt-head"><td colSpan={2}>أضلع</td></tr>
+            {bom.segmentGroups.length === 0 && (
+              <tr><td colSpan={2} className="bt-hint">ضع الأشكال السداسية لإنشاء القائمة.</td></tr>
+            )}
+            {bom.segmentGroups.map((s) => (
+              <tr key={s.systemId}><td>ضلع {s.label}</td><td className="bt-v">{s.count}</td></tr>
+            ))}
 
-        <div className="bom-block">
-          <div className="bom-sub">الموصلات</div>
-          {bom.connectorCounts.length === 0 && <p className="hint">—</p>}
-          {bom.connectorCounts.map((c) => (
-            <Row key={c.type} label={CONNECTOR_LABELS[c.type]} value={c.count} />
-          ))}
-        </div>
+            <tr className="bt-head"><td colSpan={2}>الموصلات</td></tr>
+            {bom.connectorCounts.length === 0 && (
+              <tr><td colSpan={2} className="bt-hint">—</td></tr>
+            )}
+            {bom.connectorCounts.map((c) => (
+              <tr key={c.type}><td>{CONNECTOR_LABELS[c.type]}</td><td className="bt-v">{c.count}</td></tr>
+            ))}
 
-        <div className="bom-block">
-          <div className="bom-sub">الطاقة</div>
-          <Row label="إجمالي الحمل" value={`${bom.power.totalWatts} واط`} />
-          <Row label="مداخل الطاقة" value={bom.power.powerInputs} accent />
-          {lux.mountingMode === "suspended" && (
-            <Row label="أسلاك التعليق" value={bom.suspensionPoints} />
-          )}
-        </div>
-
-        <div className="bom-total">
-          <span>السعر التقديري</span>
-          <span>{bom.estimatedPrice.toLocaleString("en-US")} د.ع</span>
-        </div>
+            <tr className="bt-head"><td colSpan={2}>الطاقة</td></tr>
+            <tr><td>إجمالي الحمل</td><td className="bt-v">{bom.power.totalWatts} واط</td></tr>
+            <tr><td>مداخل الطاقة</td><td className="bt-v accent">{bom.power.powerInputs}</td></tr>
+            {lux.mountingMode === "suspended" && (
+              <tr><td>أسلاك التعليق</td><td className="bt-v">{bom.suspensionPoints}</td></tr>
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="bt-total"><td>السعر التقديري</td><td className="bt-v">{bom.estimatedPrice.toLocaleString("en-US")} د.ع</td></tr>
+          </tfoot>
+        </table>
       </Section>
 
       {/* Light Check */}
@@ -141,15 +141,6 @@ function Section({ title, children, beta, className }: { title: string; children
       </h3>
       {children}
     </section>
-  );
-}
-
-function Row({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
-  return (
-    <div className={`row ${accent ? "accent" : ""}`}>
-      <span>{label}</span>
-      <span className="val">{value}</span>
-    </div>
   );
 }
 
