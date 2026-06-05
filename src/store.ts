@@ -111,6 +111,10 @@ export function useEditor() {
 
   const activeSystem = mode === "lines" ? lineSystem : hexSystem;
 
+  // keep module-level geometry orientation in sync before memos compute
+  // (landing previews mutate it as a side effect)
+  setOrientation(orientation);
+
   const toggleOrientation = useCallback(() => {
     setOrient((o) => {
       const next = o === "pointy" ? "flat" : "pointy";
@@ -149,7 +153,10 @@ export function useEditor() {
 
   const loadTemplate = useCallback((id: string) => {
     const t = TEMPLATE_BY_ID[id];
-    if (t) dispatch({ t: "set", doc: t.build(hexSystem, lineSystem) });
+    if (!t) return;
+    setOrientation(t.orientation); // template defines its own grid orientation
+    setOrient(t.orientation);
+    dispatch({ t: "set", doc: t.build(hexSystem, lineSystem) });
   }, [hexSystem, lineSystem]);
 
   return {

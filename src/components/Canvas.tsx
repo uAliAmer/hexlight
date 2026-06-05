@@ -292,6 +292,7 @@ export default function Canvas({ ed }: P) {
         <span>·</span>
         <span>{Math.round(view.scale * 1000) / 10} px/m</span>
         <button className="hud-btn" onClick={() => fit(ed, size)}>Fit</button>
+        <button className="hud-btn ghost" onClick={() => copyLayout(ed)} title="Copy layout as template definition">Copy</button>
         <button className="hud-btn ghost" onClick={() => setKeys((v) => !v)} title="Shortcuts">⌨</button>
       </div>
 
@@ -313,6 +314,18 @@ export default function Canvas({ ed }: P) {
         </div>
       )}
     </div>
+  );
+}
+
+// serialize the current layout so a template can be added verbatim to the app
+function copyLayout(ed: Editor) {
+  const hex: Record<string, [number, number][]> = {};
+  for (const h of Object.values(ed.doc.hexes)) (hex[h.systemId] ||= []).push([h.q, h.r]);
+  const lines = Object.values(ed.doc.lines).map((l) => [Math.round(l.ax), Math.round(l.ay), Math.round(l.bx), Math.round(l.by)]);
+  const out = JSON.stringify({ hex, lines });
+  navigator.clipboard?.writeText(out).then(
+    () => alert("Layout copied — paste it in chat with a template name."),
+    () => window.prompt("Copy this layout:", out),
   );
 }
 

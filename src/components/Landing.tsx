@@ -9,7 +9,7 @@ const TEMPLATE_BLURB: Record<string, string> = {
   h8: "~3×5 m · a popular single-car garage starter",
   h5: "Compact cluster — workbench or single station",
   dual: "Two independent clusters — switch each zone",
-  h8border: "Honeycomb with a frame — premium studio finish",
+  h13border: "Honeycomb with a frame — premium studio finish",
   h23: "~6×6 m · wall-to-wall for a two-car garage",
 };
 
@@ -48,8 +48,6 @@ const FAQ: [string, string][] = [
 export default function Landing() {
   return (
     <div className="landing">
-      <HexField />
-
       <nav className="lnav">
         <a className="brand" href="#/"><HexMark /> <span>HEXLIGHT</span></a>
         <div className="lnav-right">
@@ -60,6 +58,7 @@ export default function Landing() {
       </nav>
 
       <header className="hero">
+        <HeroHexGrid />
         <div className="hero-text">
           <span className="kicker">Hexagonal LED layout planner</span>
           <h1>Hex lights, planned for <em>your space</em>.</h1>
@@ -257,17 +256,36 @@ function HexMark() {
   );
 }
 
-// faint animated honeycomb backdrop behind the hero
-function HexField() {
+// full-bleed flat-top hex grid that lights up per-hex on hover
+function HeroHexGrid() {
+  const R = 58;
+  const W = 1680, H = 820;
+  const SQRT3 = Math.sqrt(3);
+  const h = SQRT3 * R;          // flat-top hex height
+  const dx = 1.5 * R;           // column spacing
+  const cols = Math.ceil(W / dx) + 2;
+  const rows = Math.ceil(H / h) + 2;
+
+  const hexPts = (cx: number, cy: number) => {
+    const p: string[] = [];
+    for (let k = 0; k < 6; k++) {
+      const a = (Math.PI / 180) * (60 * k);
+      p.push(`${(cx + R * Math.cos(a)).toFixed(1)},${(cy + R * Math.sin(a)).toFixed(1)}`);
+    }
+    return p.join(" ");
+  };
+
+  const cells: JSX.Element[] = [];
+  for (let c = -1; c < cols; c++) {
+    for (let r = -1; r < rows; r++) {
+      const cx = c * dx;
+      const cy = r * h + (c & 1 ? h / 2 : 0);
+      cells.push(<polygon key={`${c},${r}`} className="hero-hex" points={hexPts(cx, cy)} />);
+    }
+  }
   return (
-    <svg className="hexfield" aria-hidden="true" width="100%" height="100%">
-      <defs>
-        <pattern id="hf" width="56" height="96" patternUnits="userSpaceOnUse" patternTransform="scale(1.6)">
-          <path d="M28 0 L56 16 L56 48 L28 64 L0 48 L0 16 Z" fill="none" stroke={COLORS.accent} strokeWidth="1" />
-          <path d="M28 64 L56 80 L56 96 M28 64 L0 80 L0 96" fill="none" stroke={COLORS.accent} strokeWidth="1" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#hf)" />
+    <svg className="hero-hexgrid" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      {cells}
     </svg>
   );
 }
