@@ -19,6 +19,7 @@ export interface HexCell {
   systemId: string;
   q: number;
   r: number;
+  cctId?: string; // per-hex colour override; falls back to the global CCT when unset
 }
 
 export interface LineSeg {
@@ -47,6 +48,7 @@ export interface GEdge {
   len: number; // mm
   systemId: string;
   active: boolean;
+  cctId?: string; // colour override inherited from the owning hex (first hex wins on shared edges)
 }
 export interface Graph {
   nodes: Map<string, GNode>;
@@ -312,14 +314,14 @@ export function buildGraph(doc: Doc): Graph {
     if (!nodes.has(k)) nodes.set(k, { key: k, x: snap(x), y: snap(y) });
     return k;
   };
-  const edge = (x1: number, y1: number, x2: number, y2: number, systemId: string) => {
+  const edge = (x1: number, y1: number, x2: number, y2: number, systemId: string, cctId?: string) => {
     const a = node(x1, y1);
     const b = node(x2, y2);
     if (a === b) return;
     const k = [a, b].sort().join("~");
     if (edges.has(k)) return;
     const len = SYSTEM_BY_ID[systemId].segmentLength;
-    edges.set(k, { key: k, from: a < b ? a : b, to: a < b ? b : a, len, systemId, active: true });
+    edges.set(k, { key: k, from: a < b ? a : b, to: a < b ? b : a, len, systemId, active: true, cctId });
   };
 
   for (const h of Object.values(doc.hexes)) {
@@ -327,7 +329,7 @@ export function buildGraph(doc: Doc): Graph {
     for (let k = 0; k < 6; k++) {
       const [x1, y1] = v[k];
       const [x2, y2] = v[(k + 1) % 6];
-      edge(x1, y1, x2, y2, h.systemId);
+      edge(x1, y1, x2, y2, h.systemId, h.cctId);
     }
   }
   for (const l of Object.values(doc.lines)) {

@@ -30,15 +30,18 @@ export interface ShareOutput {
 const sysIdx = (id: string) => Math.max(0, SYSTEMS.findIndex((s) => s.id === id));
 const sysId = (i: number) => (SYSTEMS[i] ?? SYSTEMS[0]).id;
 
+const cctIdx = (id?: string) => (id ? CCT_OPTIONS.findIndex((c) => c.id === id) : -1);
+
 export function encodeDesign(p: ShareInput): string {
+  // v3: per-hex stride is 4 — [sysIdx, q, r, cctIdx] where cctIdx -1 = no override
   const H: number[] = [];
-  for (const h of Object.values(p.doc.hexes)) H.push(sysIdx(h.systemId), h.q, h.r);
+  for (const h of Object.values(p.doc.hexes)) H.push(sysIdx(h.systemId), h.q, h.r, cctIdx(h.cctId));
   const L: number[] = [];
   for (const l of Object.values(p.doc.lines))
     L.push(sysIdx(l.systemId), Math.round(l.ax), Math.round(l.ay), Math.round(l.bx), Math.round(l.by));
 
   const payload = {
-    v: 2,
+    v: 3,
     n: p.name,
     o: p.orient === "flat" ? 1 : 0,
     h: sysIdx(p.hex),
@@ -59,15 +62,18 @@ export function decodeDesign(s: string): ShareOutput | null {
     const json = decompressFromEncodedURIComponent(s);
     if (!json) return null;
     const p = JSON.parse(json);
-    if (!p || p.v !== 2) return null;
+    if (!p || (p.v !== 2 && p.v !== 3)) return null;
 
     const hexes: Doc["hexes"] = {};
     const H: number[] = p.H ?? [];
-    for (let i = 0; i + 2 < H.length; i += 3) {
+    const stride = p.v === 3 ? 4 : 3; // v3 carries a per-hex cct index
+    for (let i = 0; i + 2 < H.length; i += stride) {
       const systemId = sysId(H[i]);
       const q = H[i + 1], r = H[i + 2];
       const id = hexId(systemId, q, r);
-      hexes[id] = { id, systemId, q, r };
+      const ci = p.v === 3 ? H[i + 3] : -1;
+      const cctId = ci >= 0 ? CCT_OPTIONS[ci]?.id : undefined;
+      hexes[id] = { id, systemId, q, r, ...(cctId ? { cctId } : {}) };
     }
     const lines: Doc["lines"] = {};
     const L: number[] = p.L ?? [];

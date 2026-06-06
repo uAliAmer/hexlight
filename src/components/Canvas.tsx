@@ -19,6 +19,12 @@ interface P {
   ed: Editor;
 }
 
+// preview outline colour for a CCT (rgbic has no flat colour → use accent)
+const cctTint = (cctId: string): string => {
+  const c = CCT_BY_ID[cctId];
+  return c && !c.rgbic ? c.color : COLORS.accent;
+};
+
 export default function Canvas({ ed }: P) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
@@ -124,6 +130,14 @@ export default function Canvas({ ed }: P) {
         p.visited.add(prop.seg.id);
         if (prop.legal && !prop.exists) w.lines[prop.seg.id] = prop.seg;
       }
+    } else if (ed.mode === "color") {
+      // recolour existing hexes only; never add/remove during a colour stroke
+      const [q, r] = pixelToHex(ed.hexSystem, x, y);
+      const id = hexId(ed.hexSystem, q, r);
+      if (p.visited.has(id)) return;
+      p.visited.add(id);
+      const h = w.hexes[id];
+      if (h) w.hexes[id] = { ...h, cctId: p.erase ? undefined : ed.brushCctId };
     } else {
       const [q, r] = pixelToHex(ed.hexSystem, x, y);
       const id = hexId(ed.hexSystem, q, r);
@@ -198,7 +212,7 @@ export default function Canvas({ ed }: P) {
         ed.setDoc(work.current); // one undo entry for the whole stroke
       } else {
         const w = toWorld(e.clientX, e.clientY);
-        ed.placeAt(w.x, w.y); // plain click = toggle single cell
+        ed.placeAt(w.x, w.y, p.erase); // plain click = toggle / recolour single cell
       }
       work.current = null;
       setPaintDoc(null);
@@ -217,6 +231,16 @@ export default function Canvas({ ed }: P) {
       const v = hexVertices(ed.hexSystem, q, r);
       const pts = v.map(([x, y]) => `${sx(x)},${sy(y)}`).join(" ");
       preview = <polygon points={pts} fill={COLORS.accentDim} stroke={COLORS.accent} strokeWidth={1.5} strokeDasharray="4 4" />;
+    } else if (ed.mode === "color") {
+      // outline the hex under the cursor in the colour that will be applied
+      const [q, r] = pixelToHex(ed.hexSystem, hover.x, hover.y);
+      const id = hexId(ed.hexSystem, q, r);
+      if ((paintDoc ?? ed.doc).hexes[id]) {
+        const v = hexVertices(ed.hexSystem, q, r);
+        const pts = v.map(([x, y]) => `${sx(x)},${sy(y)}`).join(" ");
+        const tint = cctTint(ed.brushCctId);
+        preview = <polygon points={pts} fill="none" stroke={tint} strokeWidth={2.5} strokeDasharray="4 4" />;
+      }
     } else {
       const act = lineActionAt(paintDoc ?? ed.doc, ed.lineSystem, hover.x, hover.y);
       const seg = act.seg;
@@ -236,9 +260,13 @@ export default function Canvas({ ed }: P) {
   // bar thickness in px from a fixed mm width, clamped
   const barPx = Math.max(3, Math.min(14, 26 * view.scale));
 
-  // LED colour from the selected CCT / RGBIC mode
+  // LED colour from the selected CCT / RGBIC mode; per-hex overrides win
   const cct = CCT_BY_ID[ed.cctId] ?? CCT_BY_ID["6500"];
   const ledStroke = cct.rgbic ? "url(#rgbic)" : cct.color;
+  const edgeStroke = (edgeCctId?: string) => {
+    const c = edgeCctId ? (CCT_BY_ID[edgeCctId] ?? cct) : cct;
+    return c.rgbic ? "url(#rgbic)" : c.color;
+  };
 
   // placement markers: power cords (always) + hangers (suspended only)
   const suspended = ed.lux.mountingMode === "suspended";
@@ -303,7 +331,7 @@ export default function Canvas({ ed }: P) {
             return (
               <line key={e.key}
                 x1={sx(ax)} y1={sy(ay)} x2={sx(bx)} y2={sy(by)}
-                stroke={ledStroke} strokeWidth={barPx} strokeLinecap="round"
+                stroke={edgeStroke(e.cctId)} strokeWidth={barPx} strokeLinecap="round"
               />
             );
           })}
@@ -455,7 +483,7 @@ function BackdropGrid({
   view: { scale: number; tx: number; ty: number };
   hexSystem: string;
   lineSystem: string;
-  mode: "hex" | "lines" | "move";
+  mode: "hex" | "lines" | "move" | "color";
   sx: (x: number) => number;
   sy: (y: number) => number;
 }) {

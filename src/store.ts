@@ -19,7 +19,7 @@ import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
 import { TEMPLATE_BY_ID } from "./engine/templates";
 
-export type Mode = "hex" | "lines" | "move";
+export type Mode = "hex" | "lines" | "move" | "color";
 
 interface DocState {
   past: Doc[];
@@ -30,6 +30,7 @@ interface DocState {
 type Action =
   | { t: "set"; doc: Doc }
   | { t: "toggleHex"; systemId: string; q: number; r: number }
+  | { t: "colorHex"; id: string; cctId: string | null }
   | { t: "toggleLine"; seg: LineSeg }
   | { t: "translate"; dx: number; dy: number }
   | { t: "clear" }
@@ -51,6 +52,14 @@ function reducer(s: DocState, a: Action): DocState {
       const hexes = { ...s.present.hexes };
       if (hexes[id]) delete hexes[id];
       else hexes[id] = { id, systemId: a.systemId, q: a.q, r: a.r } as HexCell;
+      return commit(s, { ...s.present, hexes });
+    }
+    case "colorHex": {
+      const h = s.present.hexes[a.id];
+      if (!h) return s;
+      const next = a.cctId ?? undefined;
+      if (h.cctId === next) return s; // no change
+      const hexes = { ...s.present.hexes, [a.id]: { ...h, cctId: next } };
       return commit(s, { ...s.present, hexes });
     }
     case "toggleLine": {
@@ -107,6 +116,8 @@ export function useEditor() {
   const [orientation, setOrient] = useState<Orientation>("pointy");
   const [units, setUnits] = useState<"m" | "cm">("m");
   const [cctId, setCctId] = useState<string>("6500");
+  // colour-mode brush: applied per-hex on click, kept separate from the global default
+  const [brushCctId, setBrushCctId] = useState<string>("3000");
   const [layoutName, setLayoutName] = useState<string>("تصميم جديد");
   const [barConfig, setBarConfig] = useState<BarConfig>(defaultBarConfig());
   const [view, setView] = useState<View>({ scale: 0.18, tx: 0, ty: 0 });
@@ -147,9 +158,14 @@ export function useEditor() {
   );
 
   const placeAt = useCallback(
-    (worldX: number, worldY: number) => {
+    (worldX: number, worldY: number, erase = false) => {
       if (mode === "move") return;
-      if (mode === "hex") {
+      if (mode === "color") {
+        // recolour the hex under the cursor; shift/alt clears the override
+        const [q, r] = pixelToHex(hexSystem, worldX, worldY);
+        const id = hexId(hexSystem, q, r);
+        dispatch({ t: "colorHex", id, cctId: erase ? null : brushCctId });
+      } else if (mode === "hex") {
         const [q, r] = pixelToHex(hexSystem, worldX, worldY);
         dispatch({ t: "toggleHex", systemId: hexSystem, q, r });
       } else {
@@ -157,7 +173,7 @@ export function useEditor() {
         if (a.kind !== "blocked") dispatch({ t: "toggleLine", seg: a.seg });
       }
     },
-    [mode, hexSystem, lineSystem, doc],
+    [mode, hexSystem, lineSystem, doc, brushCctId],
   );
 
   // Move the whole layout by a world-space delta (mm). Hex shifts snap to axial
@@ -205,6 +221,8 @@ export function useEditor() {
     setUnits,
     cctId,
     setCctId,
+    brushCctId,
+    setBrushCctId,
     layoutName,
     setLayoutName,
     barConfig,

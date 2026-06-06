@@ -18,6 +18,11 @@ const LinesIcon = () => (
     <line x1="2" y1="3" x2="12" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
+const ColorIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+    <path d="M7 1C7 1 2.5 6 2.5 9.2A4.5 4.5 0 0 0 11.5 9.2C11.5 6 7 1 7 1Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+  </svg>
+);
 const MoveIcon = () => (
   <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
     <line x1="7" y1="1" x2="7" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -62,13 +67,21 @@ export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExpor
           <button className={ed.units === "cm" ? "active" : ""} onClick={() => ed.setUnits("cm")}>سم</button>
         </div>
 
-        <div className="cct-pick">
-          <span className={`cct-swatch ${CCT_BY_ID[ed.cctId]?.rgbic ? "rgbic" : ""}`}
-            style={{ background: CCT_BY_ID[ed.cctId]?.rgbic ? undefined : CCT_BY_ID[ed.cctId]?.color }} />
-          <select className="tb-select" value={ed.cctId} onChange={(e) => ed.setCctId(e.target.value)} title="لون الإضاءة">
-            {CCT_OPTIONS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-        </div>
+        {(() => {
+          // in colour mode the picker drives the per-hex brush; otherwise the global default
+          const painting = ed.mode === "color";
+          const val = painting ? ed.brushCctId : ed.cctId;
+          const set = painting ? ed.setBrushCctId : ed.setCctId;
+          return (
+            <div className={`cct-pick ${painting ? "brush" : ""}`}>
+              <span className={`cct-swatch ${CCT_BY_ID[val]?.rgbic ? "rgbic" : ""}`}
+                style={{ background: CCT_BY_ID[val]?.rgbic ? undefined : CCT_BY_ID[val]?.color }} />
+              <select className="tb-select" value={val} onChange={(e) => set(e.target.value)} title={painting ? "لون الفرشاة" : "لون الإضاءة"}>
+                {CCT_OPTIONS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+          );
+        })()}
 
         <input
           className="tb-name"
@@ -97,9 +110,12 @@ export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExpor
           <button className={ed.mode === "hex" ? "active" : ""} onClick={() => ed.setMode("hex")}><HexIcon /> سداسي</button>
           <button className={ed.mode === "lines" ? "active" : ""} onClick={() => ed.setMode("lines")}><LinesIcon /> خطوط</button>
           <button className={ed.mode === "move" ? "active" : ""} onClick={() => ed.setMode("move")}><MoveIcon /> تحريك</button>
+          <button className={ed.mode === "color" ? "active" : ""} onClick={() => ed.setMode("color")}><ColorIcon /> تلوين</button>
         </div>
 
-        {ed.mode === "lines" ? (
+        {ed.mode === "color" ? (
+          <span className="tb-label">اختر اللون من الأعلى ثم انقر الأضلاع لتلوينها · Shift للإلغاء</span>
+        ) : ed.mode === "lines" ? (
           <>
             <span className="tb-label">أضلاع خطية</span>
             <select className="tb-select" value={ed.lineSystem} onChange={(e) => ed.setLineSystem(e.target.value)}>
