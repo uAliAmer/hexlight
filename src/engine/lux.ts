@@ -6,6 +6,7 @@ import { Doc, buildGraph } from "./geometry";
 import {
   BarConfig,
   BarLength,
+  CCT_BY_ID,
   CU_TABLE,
   defaultBarConfig,
   lumensForBar,
@@ -24,7 +25,7 @@ export interface LuxInput {
   mountingMode: MountingMode;
   dropM: number; // suspension drop (suspended mode)
   clusterExtentM: number; // largest layout dimension, for auto drop
-  lumenScale?: number; // CCT/RGBIC white-output multiplier
+  cctId?: string; // global CCT; bars with a per-hex override scale individually
 }
 
 export interface LuxResult {
@@ -57,11 +58,16 @@ export function autoDrop(clusterExtentM: number, ceilingHeightM: number, workPla
   return { drop: Math.min(r, Math.max(0, i)), clamped: false };
 }
 
-// total bar lumens in the doc
-export function totalLumens(doc: Doc, config: BarConfig = defaultBarConfig()): number {
+// total bar lumens in the doc, scaled per-bar by its CCT white output
+// (per-hex override wins, else the global CCT, else 1.0)
+export function totalLumens(doc: Doc, config: BarConfig = defaultBarConfig(), cctId?: string): number {
   const g = buildGraph(doc);
   let lm = 0;
-  for (const e of g.edges.values()) if (e.active) lm += lumensForBar(config, e.len as BarLength);
+  for (const e of g.edges.values()) {
+    if (!e.active) continue;
+    const scale = CCT_BY_ID[e.cctId ?? cctId ?? ""]?.lumenScale ?? 1;
+    lm += lumensForBar(config, e.len as BarLength) * scale;
+  }
   return lm;
 }
 
@@ -92,7 +98,7 @@ export function computeLux(doc: Doc, input: LuxInput, config: BarConfig = defaul
     return { ...base, errorMessage: "Mounting height conflicts with ceiling." };
   }
 
-  const lm = totalLumens(doc, config) * (input.lumenScale ?? 1);
+  const lm = totalLumens(doc, config, input.cctId);
   const W = input.roomWidthM;
   const L = input.roomHeightM;
   const area = W * L;

@@ -5,6 +5,23 @@ import { BarConfig, CCT_BY_ID, CONNECTOR_LABELS, defaultBarConfig } from "./spec
 
 const SITE = "https://147hex.pages.dev";
 
+// human length: metres at >=1m, else centimetres
+function fmtLen(mm: number): string {
+  return mm >= 1000 ? `${(mm / 1000).toFixed(2)} م` : `${Math.round(mm / 10)} سم`;
+}
+
+// overall design footprint in mm (connector-centre span), null when empty
+function designSpan(doc: Doc): { w: number; h: number } | null {
+  const g = buildGraph(doc);
+  if (g.nodes.size === 0) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const n of g.nodes.values()) {
+    minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x); maxY = Math.max(maxY, n.y);
+  }
+  return { w: maxX - minX, h: maxY - minY };
+}
+
 // Build an SVG of the layout (dark panel, glowing bars) for the report.
 type Mk = { x: number; y: number; dx: number; dy: number };
 function layoutSvg(doc: Doc, cctId: string, powerPoints: Mk[], hangerPoints: Mk[]): string {
@@ -27,17 +44,57 @@ function layoutSvg(doc: Doc, cctId: string, powerPoints: Mk[], hangerPoints: Mk[
   lens.sort((x, y) => x - y);
   const pitch = lens.length ? lens[Math.floor(lens.length / 2)] : 500;
 
-  const pad = pitch * 0.7 + 20;
-  const W = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
-  const vb = `${minX - pad} ${minY - pad} ${W} ${H}`;
+  const minor = 100, major = 500;     // mm cutting-mat grid
+  // breathing-room margin around the design, rounded to whole 10cm squares
+  const margin = Math.max(300, Math.round((pitch * 0.6) / minor) * minor);
   const sw = pitch * 0.06;            // bar thickness
   const nodeR = sw * 1.2;
   const mr = pitch * 0.15;            // marker icon radius
-  const cct = CCT_BY_ID[cctId] ?? CCT_BY_ID["6500"];
-  // print-readable on a light panel: rainbow for RGBIC, dark ink otherwise
-  const led = cct.rgbic ? "url(#pdf-rgbic)" : "#26324a";
-  const AMBER = "#cf7a00", TEAL = "#0c8aa3";
-  const rgbicDef = cct.rgbic
+  const rs = pitch * 0.16;            // ruler label size
+  const ts = pitch * 0.2;             // dimension label size
+  // grid margin + edge rulers + dimension line (at gy1+rs*2.3) + its label below
+  const pad = margin + rs * 2.3 + ts * 2.6 + 20;
+  const W = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
+  const vb = `${minX - pad} ${minY - pad} ${W} ${H}`;
+  const AMBER = "#ffb830", TEAL = "#7df0ff", PANEL = "#0e1118";
+
+  // cutting-mat grid: 10cm minor / 50cm major squares. Ruler origin (0) sits at
+  // the mat edge, so the margin reads on the ruler and the design is inset by it.
+  const gx0 = minX - margin, gx1 = maxX + margin;
+  const gy0 = minY - margin, gy1 = maxY + margin;
+  const MINOR = "#171c27", MAJOR = "#27313f", RULE = "#5d6e83";
+  const gw = Math.max(0.4, sw * 0.18), gwM = Math.max(0.7, sw * 0.3);
+  let gridLines = "", rulers = "";
+  for (let x = gx0; x <= gx1 + 0.5; x += minor) {
+    const off = x - gx0;
+    const isMajor = Math.round(off) % major === 0;
+    gridLines += `<line x1="${x}" y1="${gy0}" x2="${x}" y2="${gy1}" stroke="${isMajor ? MAJOR : MINOR}" stroke-width="${isMajor ? gwM : gw}"/>`;
+    if (isMajor) {
+      const cm = Math.round(off / 10);
+      rulers += `<text x="${x}" y="${gy0 - rs * 0.4}" fill="${RULE}" font-size="${rs}" text-anchor="middle">${cm}</text>`;
+      rulers += `<text x="${x}" y="${gy1 + rs * 0.9}" fill="${RULE}" font-size="${rs}" text-anchor="middle" dominant-baseline="hanging">${cm}</text>`;
+    }
+  }
+  for (let y = gy0; y <= gy1 + 0.5; y += minor) {
+    const off = y - gy0;
+    const isMajor = Math.round(off) % major === 0;
+    gridLines += `<line x1="${gx0}" y1="${y}" x2="${gx1}" y2="${y}" stroke="${isMajor ? MAJOR : MINOR}" stroke-width="${isMajor ? gwM : gw}"/>`;
+    if (isMajor) {
+      const cm = Math.round(off / 10);
+      rulers += `<text x="${gx0 - rs * 0.4}" y="${y}" fill="${RULE}" font-size="${rs}" text-anchor="end" dominant-baseline="central">${cm}</text>`;
+      rulers += `<text x="${gx1 + rs * 0.4}" y="${y}" fill="${RULE}" font-size="${rs}" text-anchor="start" dominant-baseline="central">${cm}</text>`;
+    }
+  }
+  rulers += `<text x="${gx0 - rs * 0.4}" y="${gy0 - rs * 1.5}" fill="${RULE}" font-size="${rs}" text-anchor="end">سم</text>`;
+  const grid = `<g>${gridLines}</g>${rulers}`;
+  // dark panel (matches the canvas) so real LED colours read true — white CCTs
+  // would vanish on a white page. Per-hex override wins, else the global CCT.
+  const ledFor = (cid?: string): string => {
+    const c = CCT_BY_ID[cid ?? cctId] ?? CCT_BY_ID[cctId];
+    return c?.rgbic ? "url(#pdf-rgbic)" : (c?.color ?? "#f1f6ff");
+  };
+  const anyRgbic = [...g.edges.values()].some((e) => CCT_BY_ID[e.cctId ?? cctId]?.rgbic);
+  const rgbicDef = anyRgbic
     ? `<defs><linearGradient id="pdf-rgbic" x1="${minX}" y1="${minY}" x2="${minX + pitch * 6}" y2="${minY}" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
         <stop offset="0" stop-color="#ff4d4d"/><stop offset="0.17" stop-color="#ff9e1f"/><stop offset="0.34" stop-color="#e8c800"/><stop offset="0.5" stop-color="#26c455"/><stop offset="0.67" stop-color="#1aa6e0"/><stop offset="0.84" stop-color="#6a55e8"/><stop offset="1" stop-color="#e84dc0"/>
       </linearGradient></defs>`
@@ -50,11 +107,11 @@ function layoutSvg(doc: Doc, cctId: string, powerPoints: Mk[], hangerPoints: Mk[
     const dx = b.x - a.x, dy = b.y - a.y;
     const L = Math.hypot(dx, dy) || 1;
     const ux = dx / L, uy = dy / L;
-    bars += `<line x1="${a.x + ux * shorten}" y1="${a.y + uy * shorten}" x2="${b.x - ux * shorten}" y2="${b.y - uy * shorten}" stroke="${led}" stroke-width="${sw}" stroke-linecap="round"/>`;
+    bars += `<line x1="${a.x + ux * shorten}" y1="${a.y + uy * shorten}" x2="${b.x - ux * shorten}" y2="${b.y - uy * shorten}" stroke="${ledFor(e.cctId)}" stroke-width="${sw}" stroke-linecap="round"/>`;
   }
   let nodes = "";
   for (const n of g.nodes.values()) {
-    nodes += `<circle cx="${n.x}" cy="${n.y}" r="${nodeR}" fill="#3d6fb5"/>`;
+    nodes += `<circle cx="${n.x}" cy="${n.y}" r="${nodeR}" fill="#5b86c4"/>`;
   }
   let hangers = "";
   for (const p of hangerPoints) {
@@ -64,11 +121,30 @@ function layoutSvg(doc: Doc, cctId: string, powerPoints: Mk[], hangerPoints: Mk[
   let powers = "";
   for (const p of powerPoints) {
     const off = mr * 1.5, ox = p.x + p.dx * off, oy = p.y + p.dy * off;
-    powers += `<line x1="${p.x}" y1="${p.y}" x2="${ox}" y2="${oy}" stroke="${AMBER}" stroke-width="${sw * 0.8}"/><circle cx="${p.x}" cy="${p.y}" r="${sw}" fill="${AMBER}"/><circle cx="${ox}" cy="${oy}" r="${mr}" fill="#fff" stroke="${AMBER}" stroke-width="${sw * 0.9}"/><text x="${ox}" y="${oy}" fill="${AMBER}" font-size="${mr * 1.5}" text-anchor="middle" dominant-baseline="central">⚡</text>`;
+    powers += `<line x1="${p.x}" y1="${p.y}" x2="${ox}" y2="${oy}" stroke="${AMBER}" stroke-width="${sw * 0.8}"/><circle cx="${p.x}" cy="${p.y}" r="${sw}" fill="${AMBER}"/><circle cx="${ox}" cy="${oy}" r="${mr}" fill="${PANEL}" stroke="${AMBER}" stroke-width="${sw * 0.9}"/><text x="${ox}" y="${oy}" fill="${AMBER}" font-size="${mr * 1.5}" text-anchor="middle" dominant-baseline="central">⚡</text>`;
   }
-  return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:340px;display:block;background:#ffffff">
+  // overall design footprint (connector-centre span) with CAD-style dimension lines
+  const spanX = maxX - minX, spanY = maxY - minY;
+  const DIM = "#9fb2c8", dw = Math.max(0.5, sw * 0.3), tk = pitch * 0.13;
+  const wy = gy1 + rs * 2.3;          // width dimension below the bottom ruler
+  const hx = gx1 + rs * 2.3;          // height dimension beyond the right ruler
+  const dims = `
+    <g stroke="${DIM}" stroke-width="${dw}" fill="none">
+      <line x1="${minX}" y1="${wy}" x2="${maxX}" y2="${wy}"/>
+      <line x1="${minX}" y1="${wy - tk}" x2="${minX}" y2="${wy + tk}"/>
+      <line x1="${maxX}" y1="${wy - tk}" x2="${maxX}" y2="${wy + tk}"/>
+      <line x1="${hx}" y1="${minY}" x2="${hx}" y2="${maxY}"/>
+      <line x1="${hx - tk}" y1="${minY}" x2="${hx + tk}" y2="${minY}"/>
+      <line x1="${hx - tk}" y1="${maxY}" x2="${hx + tk}" y2="${maxY}"/>
+    </g>
+    <text x="${(minX + maxX) / 2}" y="${wy + ts * 1.2}" fill="${DIM}" font-size="${ts}" text-anchor="middle" dominant-baseline="hanging">${fmtLen(spanX)}</text>
+    <text transform="rotate(-90 ${hx + ts * 1.1} ${(minY + maxY) / 2})" x="${hx + ts * 1.1}" y="${(minY + maxY) / 2}" fill="${DIM}" font-size="${ts}" text-anchor="middle" dominant-baseline="central">${fmtLen(spanY)}</text>`;
+
+  return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:340px;display:block;border-radius:10px;background:${PANEL}">
     ${rgbicDef}
-    ${bars}${nodes}${hangers}${powers}
+    <rect x="${minX - pad}" y="${minY - pad}" width="${W}" height="${H}" fill="${PANEL}"/>
+    ${grid}
+    ${bars}${nodes}${hangers}${powers}${dims}
   </svg>`;
 }
 
@@ -96,12 +172,13 @@ export async function exportPdf(
   ]);
 
   const bom = computeBom(doc, config, cctId === "rgbic", lux.mountingMode === "suspended");
-  const lx = computeLux(doc, { ...lux, clusterExtentM }, config);
+  const lx = computeLux(doc, { ...lux, clusterExtentM, cctId }, config);
   const now = new Date().toLocaleString("ar-EG");
 
   const barsRows = bom.segmentGroups.map((s) => [`ضلع ${s.label}`, `× ${s.count}`] as [string, string]);
   const connRows = bom.connectorCounts.map((c) => [CONNECTOR_LABELS[c.type], `× ${c.count}`] as [string, string]);
   const luxLine = lx.luxEstimate == null ? "—" : `${lx.luxEstimate} لكس (${lx.rangeLow}–${lx.rangeHigh})`;
+  const span = designSpan(doc);
 
   const el = document.createElement("div");
   el.dir = "rtl";
@@ -118,10 +195,11 @@ export async function exportPdf(
       <div style="text-align:left;font-size:12px;color:#7a8aa0">
         <div>المساحة: ${escapeHtml(lx.useCaseLabel)}</div>
         <div>الغرفة: ${lux.roomWidthM} × ${lux.roomHeightM} م</div>
+        ${span ? `<div>أبعاد التصميم: ${fmtLen(span.w)} × ${fmtLen(span.h)}</div>` : ""}
       </div>
     </div>
 
-    <div style="border:1px solid #e6eaf0;border-radius:10px;overflow:hidden;margin-bottom:18px">
+    <div style="border:1px solid #e6eaf0;border-radius:10px;overflow:hidden;margin-bottom:18px;background:#0e1118;font-size:0">
       ${layoutSvg(doc, cctId, bom.powerPoints, lux.mountingMode === "suspended" ? bom.hangerPoints : [])}
     </div>
 

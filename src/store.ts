@@ -13,7 +13,7 @@ import {
   pixelToHex,
   setOrientation,
 } from "./engine/geometry";
-import { BarConfig, CCT_BY_ID, defaultBarConfig } from "./engine/spec";
+import { BarConfig, defaultBarConfig } from "./engine/spec";
 import { ShareInput, ShareOutput } from "./engine/share";
 import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
@@ -151,10 +151,9 @@ export function useEditor() {
 
   // cluster extent (m) for auto-drop, from bom-less quick bounds
   const clusterExtentM = useMemo(() => extentM(doc), [doc, orientation]);
-  const lumenScale = CCT_BY_ID[cctId].lumenScale;
   const luxResult = useMemo(
-    () => computeLux(doc, { ...lux, clusterExtentM, lumenScale }, barConfig),
-    [doc, lux, clusterExtentM, orientation, barConfig, lumenScale],
+    () => computeLux(doc, { ...lux, clusterExtentM, cctId }, barConfig),
+    [doc, lux, clusterExtentM, orientation, barConfig, cctId],
   );
 
   const placeAt = useCallback(

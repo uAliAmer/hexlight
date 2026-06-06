@@ -6,6 +6,7 @@ import {
   BarConfig,
   barPrice,
   BarLength,
+  CCT_BY_ID,
   CONNECTOR_PRICE,
   ConnectorType,
   CONNECTOR_ORDER,
@@ -321,8 +322,14 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
   // price in IQD — bars by white/RGBIC rate, connectors + power flat
   const totalSegments = segmentGroups.reduce((a, s) => a + s.count, 0);
   const totalConnectors = connectorCounts.reduce((a, c) => a + c.count, 0);
+  // price bars per edge: a per-hex RGBIC override is dearer than white, so the
+  // global flag is only the fallback for bars with no colour override.
   let estimatedPrice = 0;
-  for (const s of segmentGroups) estimatedPrice += s.count * barPrice(s.systemId, rgbic);
+  for (const e of g.edges.values()) {
+    if (!e.active) continue;
+    const isRgbic = e.cctId ? !!CCT_BY_ID[e.cctId]?.rgbic : rgbic;
+    estimatedPrice += barPrice(e.systemId, isRgbic);
+  }
   estimatedPrice += totalConnectors * CONNECTOR_PRICE;
   estimatedPrice += powerInputs * POWER_PRICE;
   if (suspended) estimatedPrice += suspensionPoints * HANGER_PRICE;
