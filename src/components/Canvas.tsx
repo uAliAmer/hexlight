@@ -207,7 +207,7 @@ export default function Canvas({ ed }: P) {
 
   const g = buildGraph(paintDoc ?? ed.doc);
   const infos = nodeInfos(g);
-  const shorten = 8.9; // barEndToConnectorCenterMm
+  const shorten = 13; // barEndToConnectorCenterMm
 
   // hover preview
   let preview: JSX.Element | null = null;

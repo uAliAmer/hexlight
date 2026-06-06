@@ -42,7 +42,7 @@ function layoutSvg(doc: Doc, cctId: string, powerPoints: Mk[], hangerPoints: Mk[
         <stop offset="0" stop-color="#ff4d4d"/><stop offset="0.17" stop-color="#ff9e1f"/><stop offset="0.34" stop-color="#e8c800"/><stop offset="0.5" stop-color="#26c455"/><stop offset="0.67" stop-color="#1aa6e0"/><stop offset="0.84" stop-color="#6a55e8"/><stop offset="1" stop-color="#e84dc0"/>
       </linearGradient></defs>`
     : "";
-  const shorten = 8.9;
+  const shorten = 13;
 
   let bars = "";
   for (const e of g.edges.values()) {

@@ -15,11 +15,11 @@ export interface SystemSpec {
 // Standard T5 integrated LED battens — actual lengths (nominal cm as label,
 // measured incl. pins so ~5cm shorter than nominal).
 export const SYSTEMS: SystemSpec[] = [
-  { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 8.9, rgbicOnly: true },
-  { id: "t5_45", label: "45cm", segmentLength: 425, barEndToConnectorCenterMm: 8.9 },
-  { id: "t5_60", label: "60cm", segmentLength: 548.8, barEndToConnectorCenterMm: 8.9 },
-  { id: "t5_90", label: "90cm", segmentLength: 848.8, barEndToConnectorCenterMm: 8.9 },
-  { id: "t5_120", label: "120cm", segmentLength: 1148.8, barEndToConnectorCenterMm: 8.9 },
+  { id: "t5_30", label: "30cm", segmentLength: 288.3, barEndToConnectorCenterMm: 13, rgbicOnly: true },
+  { id: "t5_45", label: "45cm", segmentLength: 425, barEndToConnectorCenterMm: 13 },
+  { id: "t5_60", label: "60cm", segmentLength: 548.8, barEndToConnectorCenterMm: 13 },
+  { id: "t5_90", label: "90cm", segmentLength: 848.8, barEndToConnectorCenterMm: 13 },
+  { id: "t5_120", label: "120cm", segmentLength: 1148.8, barEndToConnectorCenterMm: 13 },
 ];
 
 export const SYSTEM_BY_ID = Object.fromEntries(SYSTEMS.map((s) => [s.id, s])) as Record<string, SystemSpec>;
