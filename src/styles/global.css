@@ -15,6 +15,20 @@
   --radius: 8px;
 }
 
+/* Light mode — flips the chrome only; the canvas stays dark so LED bars read.
+   Scoped to the editor shell so the (dark) landing page is unaffected. */
+[data-theme="light"] {
+  --bg: #eef1f6;
+  --bg2: #ffffff;
+  --surface: #ffffff;
+  --border: #dde3ec;
+  --border-hi: #c2ccda;
+  --led: #14233a;
+  --text: #33445c;
+  --text-hi: #0d1726;
+  --muted: #6b7c92;
+}
+
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 html, body, #root { max-width: 100%; overflow-x: hidden; }
@@ -90,6 +104,7 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--surface); border: 1px solid var(--border-hi); border-radius: 10px;
   padding: 12px 14px; box-shadow: 0 12px 40px #000a;
 }
+.cfg-note { font-size: 11px; line-height: 1.5; color: var(--muted); margin-bottom: 10px; }
 .cfg-head { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 6px 0 8px; }
 .cfg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .cfg-row > span:first-child { flex: 1; font-size: 13px; color: var(--text); }

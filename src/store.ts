@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import {
   Doc,
   HexCell,
@@ -13,7 +13,7 @@ import {
   pixelToHex,
   setOrientation,
 } from "./engine/geometry";
-import { BarConfig, defaultBarConfig } from "./engine/spec";
+import { BarConfig, defaultBarConfig, PriceConfig, defaultPriceConfig } from "./engine/spec";
 import { ShareInput, ShareOutput } from "./engine/share";
 import { computeBom } from "./engine/bom";
 import { computeLux, LuxInput, MountingMode } from "./engine/lux";
@@ -120,6 +120,12 @@ export function useEditor() {
   const [brushCctId, setBrushCctId] = useState<string>("3000");
   const [layoutName, setLayoutName] = useState<string>("تصميم جديد");
   const [barConfig, setBarConfig] = useState<BarConfig>(defaultBarConfig());
+  const [priceConfig, setPriceConfig] = useState<PriceConfig>(defaultPriceConfig());
+  const [theme, setTheme] = useState<"dark" | "light">(
+    () => (typeof localStorage !== "undefined" && localStorage.getItem("hl-theme") === "light" ? "light" : "dark"),
+  );
+  useEffect(() => { try { localStorage.setItem("hl-theme", theme); } catch { /* ignore */ } }, [theme]);
+  const toggleTheme = useCallback(() => setTheme((t) => (t === "dark" ? "light" : "dark")), []);
   const [view, setView] = useState<View>({ scale: 0.18, tx: 0, ty: 0 });
   const [lux, setLux] = useState<LuxInput>(defaultLux());
 
@@ -147,7 +153,7 @@ export function useEditor() {
     });
   }, []);
 
-  const bom = useMemo(() => computeBom(doc, barConfig, cctId === "rgbic", lux.mountingMode === "suspended"), [doc, orientation, barConfig, cctId, lux.mountingMode]);
+  const bom = useMemo(() => computeBom(doc, barConfig, cctId === "rgbic", lux.mountingMode === "suspended", priceConfig), [doc, orientation, barConfig, cctId, lux.mountingMode, priceConfig]);
 
   // cluster extent (m) for auto-drop, from bom-less quick bounds
   const clusterExtentM = useMemo(() => extentM(doc), [doc, orientation]);
@@ -226,6 +232,10 @@ export function useEditor() {
     setLayoutName,
     barConfig,
     setBarConfig,
+    priceConfig,
+    setPriceConfig,
+    theme,
+    toggleTheme,
     view,
     setView,
     lux,

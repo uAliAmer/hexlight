@@ -4,16 +4,18 @@
 import { adjacency, buildGraph, Doc, Graph } from "./geometry";
 import {
   BarConfig,
-  barPrice,
   BarLength,
   CCT_BY_ID,
-  CONNECTOR_PRICE,
   ConnectorType,
   CONNECTOR_ORDER,
   defaultBarConfig,
-  HANGER_PRICE,
+  defaultPriceConfig,
   MAX_WATTS_PER_RUN,
-  POWER_PRICE,
+  PriceConfig,
+  priceForBar,
+  priceConnector,
+  pricePower,
+  priceHanger,
   SYSTEM_BY_ID,
 } from "./spec";
 
@@ -216,7 +218,7 @@ function spreadNodes(keys: string[], P: (k: string) => Point, n: number): string
   return chosen;
 }
 
-export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgbic = false, suspended = false): Bom {
+export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgbic = false, suspended = false, prices: PriceConfig = defaultPriceConfig()): Bom {
   const g = buildGraph(doc);
 
   // bars by length / system
@@ -328,11 +330,11 @@ export function computeBom(doc: Doc, config: BarConfig = defaultBarConfig(), rgb
   for (const e of g.edges.values()) {
     if (!e.active) continue;
     const isRgbic = e.cctId ? !!CCT_BY_ID[e.cctId]?.rgbic : rgbic;
-    estimatedPrice += barPrice(e.systemId, isRgbic);
+    estimatedPrice += priceForBar(prices, e.systemId, isRgbic);
   }
-  estimatedPrice += totalConnectors * CONNECTOR_PRICE;
-  estimatedPrice += powerInputs * POWER_PRICE;
-  if (suspended) estimatedPrice += suspensionPoints * HANGER_PRICE;
+  estimatedPrice += totalConnectors * priceConnector(prices);
+  estimatedPrice += powerInputs * pricePower(prices);
+  if (suspended) estimatedPrice += suspensionPoints * priceHanger(prices);
 
   return {
     segmentGroups,
