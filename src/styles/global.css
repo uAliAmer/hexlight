@@ -151,7 +151,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- Canvas ---------- */
 .canvas-wrap { position: relative; flex: 1; min-width: 0; background:
-  radial-gradient(circle at 50% 40%, #0c0f16 0%, var(--bg) 70%);
+  radial-gradient(circle at 50% 40%, #0c0f16 0%, #08090c 70%);
   user-select: none; -webkit-user-select: none; }
 .canvas-wrap svg, .canvas-wrap svg text { user-select: none; }
 .canvas-hud {
