@@ -1,7 +1,7 @@
 import { Doc, buildGraph } from "./geometry";
 import { computeBom } from "./bom";
 import { computeLux, LuxInput } from "./lux";
-import { BarConfig, CCT_BY_ID, CONNECTOR_LABELS, defaultBarConfig } from "./spec";
+import { BarConfig, CCT_BY_ID, CONNECTOR_LABELS, defaultBarConfig, PriceConfig, defaultPriceConfig } from "./spec";
 
 const SITE = "https://147hex.pages.dev";
 
@@ -164,6 +164,7 @@ export async function exportPdf(
   config: BarConfig = defaultBarConfig(),
   name = "تصميم بدون اسم",
   cctId = "6500",
+  prices: PriceConfig = defaultPriceConfig(),
 ) {
   // lazy-loaded so jspdf + html2canvas stay out of the main bundle
   const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
@@ -171,7 +172,7 @@ export async function exportPdf(
     import("html2canvas"),
   ]);
 
-  const bom = computeBom(doc, config, cctId === "rgbic", lux.mountingMode === "suspended");
+  const bom = computeBom(doc, config, cctId === "rgbic", lux.mountingMode === "suspended", prices);
   const lx = computeLux(doc, { ...lux, clusterExtentM, cctId }, config);
   const now = new Date().toLocaleString("ar-EG");
 

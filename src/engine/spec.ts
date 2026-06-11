@@ -29,12 +29,27 @@ export const CURRENCY = "د.ع";
 export const CONNECTOR_PRICE = 1500;
 export const POWER_PRICE = 1500;
 export const HANGER_PRICE = 1500; // suspension cable, per unit
-const BAR_PRICE: { white: Record<string, number>; rgbic: Record<string, number> } = {
+export const BAR_PRICE: { white: Record<string, number>; rgbic: Record<string, number> } = {
   white: { t5_30: 4500, t5_45: 3500, t5_60: 4000, t5_90: 4500, t5_120: 5500 },
   rgbic: { t5_30: 4500, t5_45: 5000, t5_60: 5500, t5_90: 6250, t5_120: 7500 },
 };
 export const barPrice = (systemId: string, rgbic: boolean): number =>
   (rgbic ? BAR_PRICE.rgbic : BAR_PRICE.white)[systemId] ?? 0;
+
+// User price OVERRIDES (Material prices popover). Empty = use the built-in
+// price; the originals are never shown. All values in IQD.
+export interface PriceConfig {
+  bar: { white: Record<string, number>; rgbic: Record<string, number> };
+  connector?: number;
+  power?: number;
+  hanger?: number;
+}
+export const defaultPriceConfig = (): PriceConfig => ({ bar: { white: {}, rgbic: {} } });
+export const priceForBar = (p: PriceConfig, systemId: string, rgbic: boolean): number =>
+  (rgbic ? p.bar.rgbic : p.bar.white)[systemId] ?? barPrice(systemId, rgbic);
+export const priceConnector = (p: PriceConfig): number => p.connector ?? CONNECTOR_PRICE;
+export const pricePower = (p: PriceConfig): number => p.power ?? POWER_PRICE;
+export const priceHanger = (p: PriceConfig): number => p.hanger ?? HANGER_PRICE;
 
 // Electrical — watts per bar by segment length (mm)
 export const WATTS_PER_BAR: Record<BarLength, number> = {

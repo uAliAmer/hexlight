@@ -3,6 +3,7 @@ import { Editor } from "../store";
 import { CCT_BY_ID, CCT_OPTIONS, COLORS, SYSTEMS } from "../engine/spec";
 import { TEMPLATES } from "../engine/templates";
 import BarConfig from "./BarConfig";
+import PriceConfig from "./PriceConfig";
 
 const HexIcon = () => (
   <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
@@ -36,6 +37,7 @@ const MoveIcon = () => (
 
 export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExport: () => void; onShare: () => void }) {
   const [cfgOpen, setCfgOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
 
   return (
     <div className="tb">
@@ -98,6 +100,9 @@ export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExpor
           <button disabled={!ed.canUndo} onClick={ed.undo} title="تراجع (Ctrl+Z)">↶</button>
           <button disabled={!ed.canRedo} onClick={ed.redo} title="إعادة (Ctrl+Shift+Z)">↷</button>
         </div>
+        <button className="tbtn" onClick={ed.toggleTheme} title={ed.theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}>
+          {ed.theme === "dark" ? "☀" : "🌙"}
+        </button>
         <button className="tbtn" onClick={ed.clear}>تصميم جديد</button>
         <button className="tbtn hide-phone" onClick={ed.clear}>مسح التصميم</button>
         <button className="tbtn" onClick={onShare}>⤴ مشاركة</button>
@@ -134,6 +139,11 @@ export default function Toolbar({ ed, onExport, onShare }: { ed: Editor; onExpor
         <div className="cfg-wrap">
           <button className={`tbtn ${cfgOpen ? "on" : ""}`} onClick={() => setCfgOpen((v) => !v)}>⚙ إعدادات أضلع ▾</button>
           {cfgOpen && <BarConfig ed={ed} onClose={() => setCfgOpen(false)} />}
+        </div>
+
+        <div className="cfg-wrap">
+          <button className={`tbtn ${priceOpen ? "on" : ""}`} onClick={() => setPriceOpen((v) => !v)}>أسعار المواد ▾</button>
+          {priceOpen && <PriceConfig ed={ed} onClose={() => setPriceOpen(false)} />}
         </div>
 
         <div className="spacer" />

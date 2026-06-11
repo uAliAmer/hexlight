@@ -67,10 +67,10 @@ export default function AppEditor() {
   }, []);
 
   return (
-    <div className="app" ref={appRef}>
+    <div className="app" ref={appRef} data-theme={ed.theme}>
       <Toolbar
         ed={ed}
-        onExport={() => { void exportPdf(ed.doc, ed.lux, 1, ed.barConfig, ed.layoutName, ed.cctId); }}
+        onExport={() => { void exportPdf(ed.doc, ed.lux, 1, ed.barConfig, ed.layoutName, ed.cctId, ed.priceConfig); }}
         onShare={() => setShare(true)}
       />
       <div className="workspace">
